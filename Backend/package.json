@@ -4,7 +4,7 @@
   "scripts": {
     "start": "bun run src/index.ts",
     "dev": "bun run --watch src/index.ts",
-    "lint": "bunx @biomejs/biome lint ./src README.md",
+    "lint": "bunx @biomejs/biome lint ./src",
     "format": "bunx @biomejs/biome check --write ./src README.md",
     "test": "bun test ./test/index.test.ts ./test/keys.test.ts",
     "test:full": "bun test ./test/**",

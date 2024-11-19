@@ -1,4 +1,3 @@
-import NoStackHome from "@/components/noStackHome";
 import ServerSelector from "@/components/serverSelector";
 import StackSelHome from "@/components/stackSelHome";
 import StacksCard from "@/components/stacksCard";

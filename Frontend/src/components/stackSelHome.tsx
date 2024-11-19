@@ -1,4 +1,3 @@
-import GitStackSettings from "./gitStackSettings";
 import StackSettings from "./stackSettings";
 import StatusIndicator from "./statusIndicator";
 import { Button } from "./ui/button";
