@@ -2,11 +2,11 @@ name: Backend - Test and Lint
 
 on:
   push:
-    branches: ["master"]
+    branches: ["main"]
     paths:
       - 'Backend/**'
   pull_request:
-    branches: ["master"]
+    branches: ["main"]
     paths:
       - 'Backend/**'
 
