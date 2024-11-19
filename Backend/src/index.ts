@@ -23,7 +23,7 @@ const lastCheck: { [key: string]: number } = {};
 
 const app = new Elysia({
 	serve: {
-		port: process.env.PORT ?? 3000,
+		port: process.env.PORT ?? 5055,
 	},
 })
 	.use(
@@ -134,7 +134,7 @@ async function main() {
 
 	starting = false;
 
-	console.log(`API is running at 0.0.0.0:${process.env.PORT ?? 3000}`);
+	console.log(`API is running at 0.0.0.0:${process.env.PORT ?? 5055}`);
 }
 main();
 
