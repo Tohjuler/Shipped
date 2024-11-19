@@ -1,0 +1,23 @@
+name: Frontend - Lint
+
+on:
+  push:
+    paths:
+      - 'Frontend/**'
+  pull_request:
+    paths:
+      - 'Frontend/**'
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies
+        working-directory: ./Frontend
+        run: bun install
+      - name: Lint
+        working-directory: ./Frontend
+        run: bun run lint
