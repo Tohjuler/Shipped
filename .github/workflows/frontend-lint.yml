@@ -2,9 +2,11 @@ name: Frontend - Lint
 
 on:
   push:
+    branches: ["master"]
     paths:
       - 'Frontend/**'
   pull_request:
+    branches: ["master"]
     paths:
       - 'Frontend/**'
 
