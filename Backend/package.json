@@ -19,7 +19,7 @@
     "@elysiajs/swagger": "^1.1.5",
     "@libsql/client": "^0.14.0",
     "docker-compose": "^1.1.0",
-    "drizzle-orm": "^0.34.1",
+    "drizzle-orm": "^0.36.0",
     "drizzle-typebox": "^0.1.1",
     "elysia": "latest",
     "simple-git": "^3.27.0"
