@@ -9,7 +9,8 @@
     "test": "bun test ./test/index.test.ts ./test/keys.test.ts",
     "test:full": "bun test ./test/**",
     "db:push": "bunx drizzle-kit push",
-    "db:migrate": "bunx drizzle-kit migrate"
+    "db:migrate": "bunx drizzle-kit migrate",
+    "build": "bash patchBuild.sh && bun build --compile --minify-whitespace --minify-syntax --target bun --outfile server ./src/index.ts"
   },
   "dependencies": {
     "@elysiajs/bearer": "^1.1.2",

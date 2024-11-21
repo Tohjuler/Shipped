@@ -6,19 +6,15 @@ WORKDIR /app
 COPY package.json package.json
 COPY bun.lockb bun.lockb
 
-RUN bun install
+RUN bun install --production
 
 COPY ./src ./src
+COPY patchBuild.sh patchBuild.sh
+COPY tsconfig.json tsconfig.json
 
 ENV NODE_ENV=production
 
-RUN bun build \
-	--compile \
-	--minify-whitespace \
-	--minify-syntax \
-	--target bun \
-	--outfile server \
-	./src/index.ts
+RUN bun run build
 
 FROM gcr.io/distroless/base
 
