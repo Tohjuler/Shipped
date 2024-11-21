@@ -5,7 +5,7 @@ export default function StatusIndicator({
 	className,
 	...props
 }: {
-	status: "active" | "inactive" | "downed";
+	status: "active" | "inactive" | "downed" | "none";
 } & React.HTMLAttributes<HTMLDivElement>) {
 	switch (status) {
 		case "active":
@@ -26,6 +26,13 @@ export default function StatusIndicator({
 			return (
 				<div
 					className={cn("bg-gray-500 w-[5%] mr-2 rounded", className)}
+					{...props}
+				/>
+			);
+		case "none":
+			return (
+				<div
+					className={cn("w-[5%] mr-2 rounded", className)}
 					{...props}
 				/>
 			);
