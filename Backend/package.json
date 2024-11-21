@@ -2,7 +2,7 @@
   "name": "shipped-backend",
   "version": "1.0.0",
   "scripts": {
-    "start": "bun run src/index.ts",
+    "start": "bun --bun run src/index.ts",
     "dev": "bun run --watch src/index.ts",
     "lint": "bunx @biomejs/biome lint ./src",
     "format": "bunx @biomejs/biome check --write ./src README.md",

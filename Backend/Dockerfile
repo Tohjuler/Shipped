@@ -8,22 +8,19 @@ COPY bun.lockb bun.lockb
 
 RUN bun install --production
 
+FROM oven/bun
+
+WORKDIR /app
+
+COPY --from=build /app/node_modules ./node_modules
 COPY ./src ./src
-COPY patchBuild.sh patchBuild.sh
+COPY ./drizzle ./drizzle
+COPY drizzle.config.ts drizzle.config.ts
+COPY package.json package.json
 COPY tsconfig.json tsconfig.json
 
 ENV NODE_ENV=production
 
-RUN bun run build
-
-FROM gcr.io/distroless/base
-
-WORKDIR /app
-
-COPY --from=build /app/server server
-
-ENV NODE_ENV=production
-
-CMD ["./server"]
+CMD ["bun", "start"]
 
 EXPOSE 5055

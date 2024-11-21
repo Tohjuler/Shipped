@@ -13,19 +13,4 @@ async function migrateDb() {
 	});
 }
 
-export const dbTypes = {
-	insert: spreads(
-		{
-			repositories: Tables.repositories,
-		},
-		"insert",
-	),
-	select: spreads(
-		{
-			repositories: Tables.repositories,
-		},
-		"select",
-	),
-} as const;
-
 export { db, migrateDb as connect };

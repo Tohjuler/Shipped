@@ -2,7 +2,7 @@ import type { repository } from "@/db/schema";
 import type { RepositoryStatus } from "@/routes/v1/mainRoute";
 import * as compose from "docker-compose";
 
-const baseDir = process.env.REPOSITORIES_DIR ?? "./repositories";
+const baseDir = process.env.STACKS_DIR ?? "/stacks";
 
 function handleOptions(repo: repository): compose.IDockerComposeOptions {
 	return repo.composeFile ? { composeOptions: [["-f", repo.composeFile]] } : {};

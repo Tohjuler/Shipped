@@ -5,7 +5,6 @@ import { eq } from "drizzle-orm";
 import { createInsertSchema, createSelectSchema } from "drizzle-typebox";
 import Elysia, { t } from "elysia";
 
-const _createKey = createInsertSchema(Tables.keys);
 const _selectKey = createSelectSchema(Tables.keys);
 
 const keysRoute = new Elysia({

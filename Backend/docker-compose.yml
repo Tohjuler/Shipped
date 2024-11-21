@@ -1,0 +1,10 @@
+services:
+  shipped-agent:
+    image: ghcr.io/tohjuler/shipped:latest
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - db:/app/database
+    
+volumes:
+  db:

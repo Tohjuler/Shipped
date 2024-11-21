@@ -3,7 +3,7 @@ import { mkdir, readdir } from "node:fs/promises";
 import type { repository } from "@/db/schema";
 import { type SimpleGit, type SimpleGitOptions, simpleGit } from "simple-git";
 
-const baseDir = process.env.REPOSITORIES_DIR ?? "./repositories";
+const baseDir = process.env.STACKS_DIR ?? "/stacks";
 
 const options: Partial<SimpleGitOptions> = {
 	// baseDir: baseDir,
@@ -29,7 +29,7 @@ async function clone(repo: repository) {
 			: {
 					"--depth":
 						repo.cloneDepth === 0
-							? process.env.DEFAULT_CLONE_DEPTH
+							? process.env.DEFAULT_CLONE_DEPTH ?? 1
 							: repo.cloneDepth,
 				}),
 		...(repo.branch && {
