@@ -1,14 +1,21 @@
-import { drizzle, migrate } from "drizzle-orm/connect";
-import { Tables } from "./schema";
-import { spreads } from "./utils";
+import { mkdir } from "node:fs/promises";
+import { drizzle } from "drizzle-orm/bun-sqlite";
+import { migrate } from "drizzle-orm/bun-sqlite/migrator";
 
-const db = await drizzle("bun:sqlite", {
-	connection: process.env.DB_FILE_NAME ?? "db.sqlite",
+await mkdir(
+	(process.env.DB_FILE_NAME ?? "./database/db.sqlite")
+		.split("/")
+		.slice(0, -1)
+		.join("/"),
+	{ recursive: true },
+);
+
+const db = drizzle(process.env.DB_FILE_NAME ?? "./database/db.sqlite", {
 	casing: "snake_case",
 });
 
 async function migrateDb() {
-	await migrate(db, {
+	migrate(db, {
 		migrationsFolder: "./drizzle",
 	});
 }

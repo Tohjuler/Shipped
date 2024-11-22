@@ -1,4 +1,4 @@
-import type { repository } from "@/db/schema";
+import type { stack } from "@/db/schema";
 import * as compose from "@/utils/dockerUtils";
 import * as git from "@/utils/gitUtils";
 import logger from "./logger";
@@ -43,15 +43,15 @@ export function stringTimeToMinuttes(time: string): number {
 	}
 }
 
-export async function handleUpdateCheck(repo: repository): Promise<{
+export async function handleUpdateCheck(stack: stack): Promise<{
 	updated: boolean;
 	from: string | null;
 	to: string | null;
 } | null> {
-	const gitRepo = await git.getRepo(repo);
+	const gitRepo = await git.getRepo(stack);
 
 	const status = await gitRepo.status();
-	logger.debug(`Status for ${repo.name} (${repo.url}):`, status);
+	logger.debug(`Status for ${stack.name} (${stack.url}):`, status);
 
 	if (status.behind === 0)
 		return {
@@ -63,9 +63,9 @@ export async function handleUpdateCheck(repo: repository): Promise<{
 	const newCommit = (await gitRepo.log(["origin/master", "-1"])).latest?.hash;
 
 	const failed = (error: Error, dockerChanged: boolean) => {
-		updateFailed(repo, currentCommit ?? "HEAD", error, dockerChanged);
+		updateFailed(stack, currentCommit ?? "HEAD", error, dockerChanged);
 		throw new Error(
-			`Failed check for ${repo.name} (${repo.url})${dockerChanged ? " in docker step" : ""}: ${error.message}`,
+			`Failed check for ${stack.name} (${stack.url})${dockerChanged ? " in docker step" : ""}: ${error.message}`,
 		);
 	};
 
@@ -77,19 +77,19 @@ export async function handleUpdateCheck(repo: repository): Promise<{
 	);
 	if (pullError) return failed(pullError, false);
 
-	const [___, imagePullError] = await safeAwait(compose.pull(repo));
+	const [___, imagePullError] = await safeAwait(compose.pull(stack));
 	if (imagePullError) return failed(imagePullError, false);
 
-	const [____, upError] = await safeAwait(compose.up(repo));
+	const [____, upError] = await safeAwait(compose.up(stack));
 	if (upError) {
 		await compose
-			.down(repo)
+			.down(stack)
 			.catch((error) => console.error("Failed to down", error));
 		return failed(upError, true);
 	}
 
 	logger.info(
-		`Updated ${repo.name} (${repo.url}) from ${currentCommit} to ${newCommit}`,
+		`Updated ${stack.name} (${stack.url}) from ${currentCommit} to ${newCommit}`,
 	);
 	return {
 		updated: true,
@@ -99,25 +99,25 @@ export async function handleUpdateCheck(repo: repository): Promise<{
 }
 
 async function updateFailed(
-	repo: repository,
+	stack: stack,
 	revertToCommit: string,
 	error: Error,
 	dockerChanged: boolean,
 ) {
 	sendNotification(
-		repo,
+		stack,
 		"Failed to update",
-		`Failed to update the repository ${repo.name} (${repo.url})\nError: ${error.message}${repo.revertOnFailure ? "\nReverting changes" : ""}`,
+		`Failed to update the stack ${stack.name} (${stack.url})\nError: ${error.message}${stack.revertOnFailure ? "\nReverting changes" : ""}`,
 	);
 
-	if (!repo.revertOnFailure) return;
-	logger.debug(`Reverting changes for ${repo.name} (${repo.url})`);
+	if (!stack.revertOnFailure) return;
+	logger.debug(`Reverting changes for ${stack.name} (${stack.url})`);
 
 	let failed = false;
 	const errors: Error[] = [];
 
 	// Revert changes to git
-	const gitRepo = await git.getRepo(repo).catch((error) => {
+	const gitRepo = await git.getRepo(stack).catch((error) => {
 		failed = true;
 		errors.push(error);
 		return null;
@@ -130,17 +130,17 @@ async function updateFailed(
 			errors.push(error);
 		});
 
-	logger.debug(`Reverted changes for ${repo.name} (${repo.url}) in git`);
+	logger.debug(`Reverted changes for ${stack.name} (${stack.url}) in git`);
 
 	if (dockerChanged) {
 		// Revert changes to docker
-		await compose.down(repo).catch((error) => {
+		await compose.down(stack).catch((error) => {
 			console.error("Failed to revert changes", error);
 			failed = true;
 			errors.push(error);
 		});
 
-		await compose.up(repo).catch((error) => {
+		await compose.up(stack).catch((error) => {
 			console.error("Failed to revert changes", error);
 			failed = true;
 			errors.push(error);
@@ -149,17 +149,17 @@ async function updateFailed(
 
 	if (failed) {
 		logger.error(
-			`Failed to revert changes for ${repo.name} (${repo.url})`,
+			`Failed to revert changes for ${stack.name} (${stack.url})`,
 			errors,
 		);
 
 		sendNotification(
-			repo,
+			stack,
 			"Failed to revert changes",
-			`Failed to revert changes for ${repo.name} (${repo.url})\nErrors: ${errors
+			`Failed to revert changes for ${stack.name} (${stack.url})\nErrors: ${errors
 				.map((e) => e.message)
 				.join("\n")}`,
 		);
 	} else
-		logger.debug(`Reverted changes for ${repo.name} (${repo.url}) in docker`);
+		logger.debug(`Reverted changes for ${stack.name} (${stack.url}) in docker`);
 }

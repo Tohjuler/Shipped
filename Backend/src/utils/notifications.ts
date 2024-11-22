@@ -1,13 +1,13 @@
-import type { repository } from "@/db/schema";
+import type { stack } from "@/db/schema";
 
 export async function sendNotification(
-	repo: repository,
+	stack: stack,
 	title: string,
 	message: string,
 ) {
-	const url = repo.notificationUrl ?? process.env.DEFAULT_NOTIFICATION_URL;
+	const url = stack.notificationUrl ?? process.env.DEFAULT_NOTIFICATION_URL;
 	const provider =
-		repo.notificationProvider ?? process.env.DEFAULT_NOTIFICATION_PROVIDER;
+		stack.notificationProvider ?? process.env.DEFAULT_NOTIFICATION_PROVIDER;
 	if (!url || !provider) return;
 
 	switch (provider) {

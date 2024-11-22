@@ -1,0 +1,6 @@
+services:
+  nginx:
+    image: docker.io/library/nginx:1.26.2-alpine
+    container_name: nginx
+    ports:
+      - 80:80

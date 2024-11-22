@@ -9,7 +9,7 @@ import { Elysia } from "elysia";
 import { Tables } from "./db/schema";
 import keysRoute from "./routes/v1/keys";
 import mainRoute from "./routes/v1/mainRoute";
-import repositories from "./routes/v1/repositories";
+import stacks from "./routes/v1/stacks";
 import logger from "./utils/logger";
 import { sendNotification } from "./utils/notifications";
 import {
@@ -26,6 +26,11 @@ const app = new Elysia({
 		port: process.env.PORT ?? 5055,
 	},
 })
+	.onError(({ error, code }) => {
+		if (code === 'NOT_FOUND') return
+
+		console.error(error)
+	})
 	.use(
 		swagger({
 			documentation: {
@@ -79,7 +84,7 @@ const app = new Elysia({
 	.get("/", () => "API is running!")
 	.group("/v1", (app) =>
 		app
-			.use(repositories)
+			.use(stacks)
 			// .use(updates)
 			.use(mainRoute)
 			.use(keysRoute),
@@ -89,27 +94,29 @@ const app = new Elysia({
 			name: "update-checker",
 			pattern: "*/1 * * * *",
 			run() {
-				for (const repo of db.select().from(Tables.repositories).all()) {
+				for (const stack of db.select().from(Tables.stacks).all()) {
+					if (stack.type !== "git") continue;
+
 					// Check for updates
-					const checkTime = stringTimeToMinuttes(repo.fetchInterval ?? "15m");
+					const checkTime = stringTimeToMinuttes(stack.fetchInterval ?? "15m");
 					if (
-						lastCheck[repo.name] &&
-						Date.now() - lastCheck[repo.name] < checkTime * 60 * 1000
+						lastCheck[stack.name] &&
+						Date.now() - lastCheck[stack.name] < checkTime * 60 * 1000
 					)
 						continue;
-					logger.debug(`Checking for updates for ${repo.name} (${repo.url})`);
+					logger.debug(`Checking for updates for ${stack.name} (${stack.url})`);
 
-					lastCheck[repo.name] = Date.now();
-					handleUpdateCheck(repo)
+					lastCheck[stack.name] = Date.now();
+					handleUpdateCheck(stack)
 						.then(() =>
 							logger.debug(
-								`Finished for updates for ${repo.name} (${repo.url})`,
+								`Finished for updates for ${stack.name} (${stack.url})`,
 							),
 						)
 						.catch((err) => {
 							logger.error("Failed to check for updates", err);
 							sendNotification(
-								repo,
+								stack,
 								"Failed to check for updates",
 								err.message,
 							);

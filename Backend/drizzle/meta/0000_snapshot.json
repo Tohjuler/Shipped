@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "9390abde-14cc-4e05-8743-784f4d00347a",
+  "id": "4dc33826-e079-492c-87d7-689179bca4e6",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "keys": {
@@ -33,10 +33,11 @@
       "indexes": {},
       "foreignKeys": {},
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {}
+      "uniqueConstraints": {},
+      "checkConstraints": {}
     },
-    "repositories": {
-      "name": "repositories",
+    "stacks": {
+      "name": "stacks",
       "columns": {
         "name": {
           "name": "name",
@@ -45,11 +46,33 @@
           "notNull": true,
           "autoincrement": false
         },
+        "type": {
+          "name": "type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
         "url": {
           "name": "url",
           "type": "text",
           "primaryKey": false,
-          "notNull": true,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "clone_depth": {
+          "name": "clone_depth",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": 0
+        },
+        "branch": {
+          "name": "branch",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
           "autoincrement": false
         },
         "fetch_interval": {
@@ -68,6 +91,13 @@
           "autoincrement": false,
           "default": false
         },
+        "compose_path": {
+          "name": "compose_path",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
         "notification_url": {
           "name": "notification_url",
           "type": "text",
@@ -77,28 +107,6 @@
         },
         "notification_provider": {
           "name": "notification_provider",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "clone_depth": {
-          "name": "clone_depth",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false,
-          "default": 0
-        },
-        "compose_file": {
-          "name": "compose_file",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "branch": {
-          "name": "branch",
           "type": "text",
           "primaryKey": false,
           "notNull": false,
@@ -123,9 +131,11 @@
       "indexes": {},
       "foreignKeys": {},
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {}
+      "uniqueConstraints": {},
+      "checkConstraints": {}
     }
   },
+  "views": {},
   "enums": {},
   "_meta": {
     "schemas": {},

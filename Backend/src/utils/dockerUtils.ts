@@ -1,85 +1,123 @@
-import type { repository } from "@/db/schema";
-import type { RepositoryStatus } from "@/routes/v1/mainRoute";
+import type { stack } from "@/db/schema";
 import * as compose from "docker-compose";
+import { safeAwait } from "./utils";
+import logger from "./logger";
 
 const baseDir = process.env.STACKS_DIR ?? "/stacks";
 
-function handleOptions(repo: repository): compose.IDockerComposeOptions {
-	return repo.composeFile ? { composeOptions: [["-f", repo.composeFile]] } : {};
+function handleOptions(stack: stack): compose.IDockerComposeOptions {
+	return stack.composePath
+		? { composeOptions: [["-f", stack.composePath]] }
+		: {};
 }
 
-function pull(repo: repository): Promise<compose.IDockerComposeResult> {
+function pull(stack: stack): Promise<compose.IDockerComposeResult> {
+	logger.debug(`Pulling images for stack ${stack.name} at ${baseDir}/${stack.name}/${stack.composePath ?? "docker-compose.yml"}`);
 	return compose.pullAll({
-		...handleOptions(repo),
-		cwd: `${baseDir}/${repo.name}`,
+		...handleOptions(stack),
+		cwd: `${baseDir}/${stack.name}`,
 		log: true,
 	});
 }
 
-function up(repo: repository): Promise<compose.IDockerComposeResult> {
+function up(stack: stack): Promise<compose.IDockerComposeResult> {
+	logger.debug(`Starting stack ${stack.name} at ${baseDir}/${stack.name}/${stack.composePath ?? "docker-compose.yml"}`);
 	return compose.upAll({
-		...handleOptions(repo),
-		cwd: `${baseDir}/${repo.name}`,
+		...handleOptions(stack),
+		cwd: `${baseDir}/${stack.name}`,
 		log: true,
 	});
 }
 
-function down(repo: repository): Promise<compose.IDockerComposeResult> {
+function down(stack: stack, full = false): Promise<compose.IDockerComposeResult> {
+	logger.debug(`Stopping stack ${stack.name} at ${baseDir}/${stack.name}/${stack.composePath ?? "docker-compose.yml"}${full ? " and removing volumes" : ""}`);
+
+	const flags = full ? [["-v"]] : [];
+	if (full && (process.env.REMOVE_IMAGE_ON_DELETE ?? "true") === "true")
+		flags.push(["--rmi", "all"]);
+
 	return compose.down({
-		...handleOptions(repo),
-		cwd: `${baseDir}/${repo.name}`,
+		...handleOptions(stack),
+		cwd: `${baseDir}/${stack.name}`,
 		log: true,
+		commandOptions: flags,
 	});
 }
 
-function restart(repo: repository): Promise<compose.IDockerComposeResult> {
+function restart(stack: stack): Promise<compose.IDockerComposeResult> {
+	logger.debug(`Restarting stack ${stack.name} at ${baseDir}/${stack.name}/${stack.composePath ?? "docker-compose.yml"}`);
 	return compose.restartAll({
-		...handleOptions(repo),
-		cwd: `${baseDir}/${repo.name}`,
+		...handleOptions(stack),
+		cwd: `${baseDir}/${stack.name}`,
 		log: true,
 	});
 }
 
-async function getStatus(repo: repository): Promise<{
-	status: RepositoryStatus;
+async function pullAndUp(
+	stack: stack,
+): Promise<{ message: string; error?: string } | undefined> {
+	const [_pullRes, pullError] = await safeAwait(pull(stack));
+
+	if (pullError)
+		return {
+			message: "Failed to pull docker images",
+			error: pullError.message,
+		};
+
+	const [_upRes, upError] = await safeAwait(up(stack));
+	if (upError)
+		return {
+			message: "Failed to start docker containers",
+			error: upError.message,
+		};
+
+	return undefined;
+}
+
+async function getStatus(
+	stack: stack | { name: string; composePath?: string | null },
+): Promise<{
+	status: "ACTIVE" | "INACTIVE" | "DOWN";
 	containers: compose.DockerComposePsResultService[];
 }> {
 	const result = await compose.ps({
-		cwd: `${baseDir}/${repo.name}`,
+		cwd: `${baseDir}/${stack.name}`,
 		commandOptions: [
 			["--format", "json"],
-			...(repo.composeFile ? [["-f", repo.composeFile]] : []),
 		],
+		composeOptions: [
+			...(stack.composePath ? [["--file", stack.composePath]] : []),
+		]
 	});
 	const onlineServices = result.data.services.filter(
-		(service) => service.state === "Up",
+		(service) => service.state === "running",
 	).length;
 
 	return {
 		status:
 			onlineServices === result.data.services.length && onlineServices > 0
 				? "ACTIVE"
-				: "INACTIVE",
+				: "INACTIVE", // TODO: Rework statuses
 		containers: result.data.services,
 	};
 }
 
 async function getLogs(
-	repo: repository,
+	stack: stack,
 	container: string,
 	lines = 100,
 ): Promise<string> {
 	const result = await compose.logs(container, {
-		cwd: `${baseDir}/${repo.name}`,
+		cwd: `${baseDir}/${stack.name}`,
 		commandOptions: [
 			// ["--no-color"],
 			["--tail", lines.toString()],
 			["--timestamps"],
-			...(repo.composeFile ? [["-f", repo.composeFile]] : []),
+			...(stack.composePath ? [["-f", stack.composePath]] : []),
 		],
 	});
 	if (result.exitCode !== 0) throw new Error(result.err);
 	return result.out;
 }
 
-export { pull, up, down, restart, getStatus, getLogs };
+export { pull, up, down, restart, pullAndUp, getStatus, getLogs };

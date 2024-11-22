@@ -2,7 +2,6 @@ import { db } from "@/db/db";
 import { Tables } from "@/db/schema";
 import * as compose from "@/utils/dockerUtils";
 import { safeAwait } from "@/utils/utils";
-import { DockerComposePsResultService } from "docker-compose";
 import { eq } from "drizzle-orm";
 import Elysia, { t } from "elysia";
 
@@ -12,27 +11,27 @@ const containers = new Elysia({
 })
 	.derive(({ request }) => {
 		return {
-			repoName: request.url.split("/")[3], // /v1/repositories/:repo/containers
+			stackName: request.url.split("/")[3], // /v1/stacks/:stack/containers
 		};
 	})
 	.get(
 		"/",
-		async ({ set, repoName }) => {
-			const [repo, error] = await safeAwait(
+		async ({ set, stackName }) => {
+			const [stack, error] = await safeAwait(
 				db
 					.select()
-					.from(Tables.repositories)
-					.where(eq(Tables.repositories.name, repoName)),
+					.from(Tables.stacks)
+					.where(eq(Tables.stacks.name, stackName)),
 			);
-			if (error || !repo) {
+			if (error || !stack) {
 				set.status = 400;
 				return {
-					message: "Failed to fetch repository",
+					message: "Failed to fetch the stack",
 					error: error?.message ?? "Unknown error",
 				};
 			}
 
-			const status = await compose.getStatus(repo[0]);
+			const status = await compose.getStatus(stack[0]);
 			set.status = 200;
 			return status.containers;
 		},
@@ -71,22 +70,22 @@ const containers = new Elysia({
 	)
 	.get(
 		"/:container",
-		async ({ set, repoName, params }) => {
-			const [repo, error] = await safeAwait(
+		async ({ set, stackName, params }) => {
+			const [stack, error] = await safeAwait(
 				db
 					.select()
-					.from(Tables.repositories)
-					.where(eq(Tables.repositories.name, repoName)),
+					.from(Tables.stacks)
+					.where(eq(Tables.stacks.name, stackName)),
 			);
-			if (error || !repo) {
+			if (error || !stack) {
 				set.status = 400;
 				return {
-					message: "Failed to fetch repository",
+					message: "Failed to fetch the stack",
 					error: error?.message ?? "Unknown error",
 				};
 			}
 
-			const status = await compose.getStatus(repo[0]);
+			const status = await compose.getStatus(stack[0]);
 			const container = status.containers.find(
 				(container) => container.name === params.container,
 			);
@@ -99,7 +98,7 @@ const containers = new Elysia({
 			}
 
 			const [logs, err] = await safeAwait(
-				compose.getLogs(repo[0], container.name),
+				compose.getLogs(stack[0], container.name),
 			);
 
 			if (err || !logs) {

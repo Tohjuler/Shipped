@@ -5,9 +5,9 @@
     "start": "bun --bun run src/index.ts",
     "dev": "bun run --watch src/index.ts",
     "lint": "bunx @biomejs/biome lint ./src",
-    "format": "bunx @biomejs/biome check --write ./src README.md",
+    "format": "bunx @biomejs/biome check --write ./src",
     "test": "bun test ./test/index.test.ts ./test/keys.test.ts",
-    "test:full": "bun test ./test/**",
+    "test:full": "bun test ./test/*.test.ts",
     "db:push": "bunx drizzle-kit push",
     "db:migrate": "bunx drizzle-kit migrate",
     "build": "bash patchBuild.sh && bun build --compile --minify-whitespace --minify-syntax --target bun --outfile server ./src/index.ts"
@@ -20,7 +20,7 @@
     "@elysiajs/swagger": "^1.1.5",
     "@libsql/client": "^0.14.0",
     "docker-compose": "^1.1.0",
-    "drizzle-orm": "^0.34.1",
+    "drizzle-orm": "^0.36.4",
     "drizzle-typebox": "^0.1.1",
     "elysia": "latest",
     "simple-git": "^3.27.0"
@@ -29,7 +29,7 @@
     "@biomejs/biome": "^1.9.3",
     "@types/bun": "^1.1.11",
     "bun-types": "latest",
-    "drizzle-kit": "^0.28.0"
+    "drizzle-kit": "^0.28.1"
   },
   "module": "src/index.js"
 }

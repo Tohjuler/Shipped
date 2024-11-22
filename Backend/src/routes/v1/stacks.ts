@@ -1,0 +1,754 @@
+import { db } from "@/db/db";
+import { Tables } from "@/db/schema";
+import * as compose from "@/utils/dockerUtils";
+import * as git from "@/utils/gitUtils";
+import { handleUpdateCheck, safeAwait } from "@/utils/utils";
+import { eq } from "drizzle-orm";
+import { createInsertSchema, createSelectSchema } from "drizzle-typebox";
+import { Elysia, t } from "elysia";
+import containers from "./subroutes/containers";
+
+const _createStack = createInsertSchema(Tables.stacks);
+const _selectStack = createSelectSchema(Tables.stacks);
+
+const baseDir = process.env.STACKS_DIR ?? "/stacks";
+
+// TODO: Endpoint to get compose file and .env from file type stacks
+
+const stacks = new Elysia({
+	prefix: "stacks",
+	tags: ["stacks"],
+})
+	.post(
+		"/git",
+		async ({ body, set }) => {
+			if (
+				(
+					await db
+						.select()
+						.from(Tables.stacks)
+						.where(eq(Tables.stacks.name, body.name))
+				).length > 0
+			) {
+				set.status = 400;
+				return {
+					message: "A stack with the same name already exists",
+				};
+			}
+
+			const [insStack, error] = await safeAwait(
+				db
+					.insert(Tables.stacks)
+					.values({
+						...body,
+						type: "git",
+					})
+					.returning(),
+			);
+			if (error || !insStack || insStack.length === 0) {
+				set.status = 400;
+				return {
+					message: "Failed to create the stack",
+					error: error?.message,
+				};
+			}
+			const stack = insStack[0];
+
+			try {
+				await git.clone(stack);
+			} catch (error) {
+				console.error(error);
+
+				set.status = 400;
+				return {
+					message: "Failed to clone repository",
+					error: (error as Error).message,
+				};
+			}
+
+			const pullAndUpError = await compose.pullAndUp(stack);
+			if (pullAndUpError) {
+				set.status = 400;
+				return pullAndUpError;
+			}
+
+			set.status = 201;
+			return stack;
+		},
+		{
+			body: t.Intersect([
+				t.Omit(_createStack, [
+					"name",
+					"createdAt",
+					"updatedAt",
+					"envFile",
+					"type",
+				]),
+				t.Object({
+					name: t.String({
+						pattern: "^[a-z0-9_-]{3,30}$",
+					}),
+				}),
+			]),
+			response: {
+				201: _selectStack,
+				400: t.Object({
+					message: t.String(),
+					error: t.Optional(t.String()),
+				}),
+			},
+			details: {
+				description: "Create a new stack from a git repository",
+			},
+		},
+	)
+	.post(
+		"/file",
+		async ({ body, set }) => {
+			if (
+				await db
+					.select()
+					.from(Tables.stacks)
+					.where(eq(Tables.stacks.name, body.name))
+			) {
+				set.status = 400;
+				return {
+					message: "A stack with the same name already exists",
+				};
+			}
+
+			const { composeFile, envFile, ...rest } = body;
+			const [insStack, error] = await safeAwait(
+				db
+					.insert(Tables.stacks)
+					.values({
+						...rest,
+						type: "file",
+					})
+					.returning(),
+			);
+			if (error || !insStack || insStack.length === 0) {
+				set.status = 400;
+				return {
+					message: "Failed to create the stack",
+					error: error?.message,
+				};
+			}
+			const stack = insStack[0];
+
+			// Save files
+			// ---
+
+			Bun.write(`${baseDir}/${stack.name}/docker-compose.yml`, composeFile);
+			Bun.write(`${baseDir}/${stack.name}/.env`, envFile);
+
+			const res = compose.pullAndUp(stack);
+			if (res) {
+				set.status = 400;
+				return res;
+			}
+
+			set.status = 201;
+			return stack;
+		},
+		{
+			body: t.Intersect([
+				t.Omit(_createStack, [
+					"name",
+					"createdAt",
+					"updatedAt",
+					"branch",
+					"cloneDepth",
+					"fetchInterval",
+					"revertOnFailure",
+					"type",
+				]),
+				t.Object({
+					name: t.String({
+						pattern: "^[a-z0-9_-]{3,30}$",
+					}),
+					composeFile: t.String(),
+					envFile: t.String(),
+				}),
+			]),
+			response: {
+				400: t.Object({
+					message: t.String(),
+					error: t.Optional(t.String()),
+				}),
+				201: t.Omit(_selectStack, [
+					"branch",
+					"cloneDepth",
+					"fetchInterval",
+					"revertOnFailure",
+					"composePath",
+				]),
+			},
+			details: {
+				description: "Create a new stack from a file",
+			},
+		},
+	)
+	.get(
+		"/",
+		async ({ set }) => {
+			const [stacks, error] = await safeAwait(
+				db
+					.select({
+						name: Tables.stacks.name,
+						type: Tables.stacks.type,
+						url: Tables.stacks.url,
+						branch: Tables.stacks.branch,
+						composePath: Tables.stacks.composePath,
+					})
+					.from(Tables.stacks),
+			);
+			if (error) {
+				set.status = 400;
+				return {
+					message: "Failed to fetch stacks",
+					error: error.message,
+				};
+			}
+
+			set.status = 200;
+			if (!stacks) return [];
+
+			return await Promise.all(
+				stacks.map(async (stack) => ({
+					name: stack.name,
+					type: stack.type,
+					url: stack.url ?? undefined,
+					branch: stack.branch ?? undefined,
+					composePath: stack.composePath ?? undefined,
+
+					status: (await compose.getStatus(stack)).status,
+					commit: await git.currentCommit(stack),
+				})),
+			);
+		},
+		{
+			response: {
+				200: t.Array(
+					t.Object({
+						name: t.String(),
+						type: t.Union([t.Literal("git"), t.Literal("file")]),
+						url: t.Optional(t.String()),
+						branch: t.Optional(t.String()),
+						commit: t.Optional(t.String()),
+						status: t.Union([
+							t.Literal("ACTIVE"),
+							t.Literal("INACTIVE"),
+							t.Literal("DOWN"),
+						]),
+					}),
+				),
+				400: t.Object({
+					message: t.String(),
+					error: t.String(),
+				}),
+			},
+			details: {
+				description: "Fetch all stacks",
+			},
+		},
+	)
+	.get(
+		"/:name",
+		async ({ params, set }) => {
+			const [stacks, error] = await safeAwait(
+				db
+					.select()
+					.from(Tables.stacks)
+					.where(eq(Tables.stacks.name, params.name)),
+			);
+			if (error || !stacks) {
+				set.status = 400;
+				return {
+					message: "Failed to fetch stacks",
+					error: error?.message ?? "Unknown error",
+				};
+			}
+			const stack = stacks[0];
+
+			set.status = 200;
+			const status = await compose.getStatus(stack);
+			return {
+				...stack,
+				status: status.status,
+				containers: status.containers,
+			};
+		},
+		{
+			params: t.Object({
+				name: t.String(),
+			}),
+			response: {
+				200: t.Intersect([
+					t.Omit(_selectStack, ["type"]),
+					t.Object({
+						status: t.Union([
+							t.Literal("ACTIVE"),
+							t.Literal("INACTIVE"),
+							t.Literal("DOWN"),
+						]),
+						containers: t.Array(
+							t.Object({
+								name: t.String(),
+								command: t.String(),
+								state: t.String(),
+								ports: t.Array(
+									t.Object({
+										mapped: t.Optional(
+											t.Object({
+												address: t.String(),
+												port: t.Number(),
+											}),
+										),
+										exposed: t.Object({
+											port: t.Number(),
+											protocol: t.String(),
+										}),
+									}),
+								),
+							}),
+						),
+					}),
+				]),
+				400: t.Object({
+					message: t.String(),
+					error: t.String(),
+				}),
+			},
+			details: {
+				description: "Get all information about a stack",
+			},
+		},
+	)
+	.patch(
+		"/:name",
+		async ({ params, body, set }) => {
+			const { composeFile, envFile, ...rest } = body;
+			const [stack, error] = await safeAwait(
+				db
+					.update(Tables.stacks)
+					.set(rest)
+					.where(eq(Tables.stacks.name, params.name))
+					.returning(),
+			);
+			if (error || !stack || stack.length === 0) {
+				set.status = 400;
+				return {
+					message: "Failed to update stack",
+					error: error?.message,
+				};
+			}
+
+			if (composeFile)
+				Bun.write(`${baseDir}/${params.name}/docker-compose.yml`, composeFile);
+			if (envFile) Bun.write(`${baseDir}/${params.name}/.env`, envFile);
+
+			set.status = 200;
+			return {
+				message: "Stack updated successfully",
+			};
+		},
+		{
+			params: t.Object({
+				name: t.String(),
+			}),
+			body: t.Intersect([
+				t.Omit(_createStack, ["name", "type", "createdAt", "updatedAt"]),
+				t.Object({
+					composeFile: t.Optional(t.String()),
+					envFile: t.Optional(t.String()),
+				}),
+			]),
+			response: t.Object({
+				message: t.String(),
+				error: t.Optional(t.String()),
+			}),
+			details: {
+				description:
+					"Update a stack, this will work for both git and file type stacks, but only the fields that are relevant to the stack type will be updated. The stack will not be restarted automaticly.",
+			},
+		},
+	)
+	.delete(
+		"/:name",
+		async ({ params, set }) => {
+			const [stack, error] = await safeAwait(
+				db
+					.delete(Tables.stacks)
+					.where(eq(Tables.stacks.name, params.name))
+					.returning(),
+			);
+			if (error || !stack || stack.length === 0) {
+				set.status = 400;
+				return {
+					message: "Failed to delete stack",
+					error: error?.message,
+				};
+			}
+
+			// Stop stack
+			const [_, downError] = await safeAwait(compose.down(stack[0], true));
+			if (downError) {
+				set.status = 400;
+				return {
+					message: "Failed to stop containers",
+					error: downError.message
+				};
+			}
+
+			// Delete stack
+			const [__, delStackError] = await safeAwait(git.deleteRepo(params.name)); // Handles both git and file type stacks
+			if (delStackError) {
+				set.status = 400;
+				return {
+					message: "Failed to delete stack",
+					error: delStackError.message,
+				};
+			}
+
+			set.status = 200;
+			return {
+				message: "Stack deleted successfully",
+			};
+		},
+		{
+			params: t.Object({
+				name: t.String(),
+			}),
+			response: t.Object({
+				message: t.String(),
+				error: t.Optional(t.String()),
+			}),
+			details: {
+				description: "Delete a stack",
+			},
+		},
+	)
+	.get(
+		"/:name/run-check",
+		async ({ params, set }) => {
+			const [stack, error] = await safeAwait(
+				db
+					.select()
+					.from(Tables.stacks)
+					.where(eq(Tables.stacks.name, params.name)),
+			);
+			if (error || !stack || stack.length === 0) {
+				set.status = 400;
+				return {
+					message: "Failed to fetch stack",
+					error: error?.message,
+				};
+			}
+
+			if (stack[0].type !== "git") {
+				set.status = 400;
+				return {
+					message: "Check only works on git type stacks",
+				};
+			}
+
+			const [checkRes, checkError] = await safeAwait(
+				handleUpdateCheck(stack[0]),
+			);
+			if (checkError || !checkRes) {
+				if (checkError) console.error(checkError);
+				set.status = 400;
+				return {
+					message: "Failed to run check",
+					error: checkError?.message,
+				};
+			}
+			if (!checkRes.updated) {
+				set.status = 200;
+				return {
+					message: "No updates found",
+				};
+			}
+
+			set.status = 200;
+			return {
+				message: "Check ran successfully",
+				...checkRes,
+			};
+		},
+		{
+			timeout: 300000,
+			params: t.Object({
+				name: t.String(),
+			}),
+			response: {
+				200: t.Object({
+					message: t.String(),
+					from: t.Optional(t.String()),
+					to: t.Optional(t.String()),
+				}),
+				400: t.Object({
+					message: t.String(),
+					error: t.Optional(t.String()),
+				}),
+			},
+			details: {
+				description: "Run check for a git type stack",
+			},
+		},
+	)
+	.get(
+		"/:name/start",
+		async ({ params, set }) => {
+			const [stack, error] = await safeAwait(
+				db
+					.select()
+					.from(Tables.stacks)
+					.where(eq(Tables.stacks.name, params.name)),
+			);
+			if (error || !stack || stack.length === 0) {
+				set.status = 400;
+				return {
+					message: "Failed to fetch the stack",
+					error: error?.message ?? "Unknown error",
+				};
+			}
+
+			const [upRes, upError] = await safeAwait(compose.up(stack[0]));
+			if (upError || !upRes) {
+				set.status = 400;
+				return {
+					message: "Failed to start docker containers",
+					error: upError?.message ?? "Unknown error",
+				};
+			}
+
+			set.status = 200;
+			return {
+				message: "Stack started successfully",
+				log: {
+					out: upRes.out,
+					err: upRes.err,
+				},
+			};
+		},
+		{
+			params: t.Object({
+				name: t.String(),
+			}),
+			response: {
+				200: t.Object({
+					message: t.String(),
+					log: t.Object({
+						out: t.Optional(t.String()),
+						err: t.Optional(t.String()),
+					}),
+				}),
+				400: t.Object({
+					message: t.String(),
+					error: t.String(),
+				}),
+			},
+			details: {
+				description: "Start a stack",
+			},
+		},
+	)
+	.get(
+		"/:name/stop",
+		async ({ params, set }) => {
+			const [stack, error] = await safeAwait(
+				db
+					.select()
+					.from(Tables.stacks)
+					.where(eq(Tables.stacks.name, params.name)),
+			);
+			if (error || !stack || stack.length === 0) {
+				set.status = 400;
+				return {
+					message: "Failed to fetch the stack",
+					error: error?.message ?? "Unknown error",
+				};
+			}
+
+			const [downRes, downError] = await safeAwait(compose.down(stack[0]));
+			if (downError || !downRes) {
+				set.status = 400;
+				return {
+					message: "Failed to stop docker containers",
+					error: downError?.message ?? "Unknown error",
+				};
+			}
+
+			set.status = 200;
+			return {
+				message: "Stack stopped successfully",
+				log: {
+					out: downRes.out,
+					err: downRes.err,
+				},
+			};
+		},
+		{
+			params: t.Object({
+				name: t.String(),
+			}),
+			response: {
+				200: t.Object({
+					message: t.String(),
+					log: t.Object({
+						out: t.Optional(t.String()),
+						err: t.Optional(t.String()),
+					}),
+				}),
+				400: t.Object({
+					message: t.String(),
+					error: t.String(),
+				}),
+			},
+			details: {
+				description: "Stop a stack",
+			},
+		},
+	)
+	.get(
+		"/:name/restart",
+		async ({ params, set }) => {
+			const [stack, error] = await safeAwait(
+				db
+					.select()
+					.from(Tables.stacks)
+					.where(eq(Tables.stacks.name, params.name)),
+			);
+			if (error || !stack || stack.length === 0) {
+				set.status = 400;
+				return {
+					message: "Failed to fetch the stack",
+					error: error?.message ?? "Unknown error",
+				};
+			}
+
+			const [restartRes, downError] = await safeAwait(
+				compose.restart(stack[0]),
+			);
+			if (downError || !restartRes) {
+				set.status = 400;
+				return {
+					message: "Failed to stop docker containers",
+					error: downError?.message ?? "Unknown error",
+				};
+			}
+
+			set.status = 200;
+			return {
+				message: "Stack restarted successfully",
+				log: {
+					out: restartRes.out,
+					err: restartRes.err,
+				},
+			};
+		},
+		{
+			params: t.Object({
+				name: t.String(),
+			}),
+			response: {
+				200: t.Object({
+					message: t.String(),
+					log: t.Object({
+						out: t.Optional(t.String()),
+						err: t.Optional(t.String()),
+					}),
+				}),
+				400: t.Object({
+					message: t.String(),
+					error: t.String(),
+				}),
+			},
+			details: {
+				description: "Restart a stack",
+			},
+		},
+	)
+	.get(
+		"/:name/update",
+		async ({ params, set }) => {
+			const [stack, error] = await safeAwait(
+				db
+					.select()
+					.from(Tables.stacks)
+					.where(eq(Tables.stacks.name, params.name)),
+			);
+			if (error || !stack || stack.length === 0) {
+				set.status = 400;
+				return {
+					message: "Failed to fetch the stack",
+					error: error?.message ?? "Unknown error",
+				};
+			}
+
+			const [pullRes, pullError] = await safeAwait(compose.pull(stack[0]));
+			if (pullError || !pullRes) {
+				set.status = 400;
+				return {
+					message: "Failed to pull docker images",
+					error: pullError?.message ?? "Unknown error",
+				};
+			}
+
+			const [upRes, upError] = await safeAwait(compose.up(stack[0]));
+			if (upError || !upRes) {
+				set.status = 400;
+				return {
+					message: "Failed to start docker containers",
+					error: upError?.message ?? "Unknown error",
+				};
+			}
+
+			set.status = 200;
+			return {
+				message: "Stack updated successfully",
+				log: {
+					pull: {
+						out: pullRes.out,
+						err: pullRes.err,
+					},
+					up: {
+						out: upRes.out,
+						err: upRes.err,
+					},
+				},
+			};
+		},
+		{
+			params: t.Object({
+				name: t.String(),
+			}),
+			response: {
+				200: t.Object({
+					message: t.String(),
+					log: t.Object({
+						pull: t.Object({
+							out: t.Optional(t.String()),
+							err: t.Optional(t.String()),
+						}),
+						up: t.Object({
+							out: t.Optional(t.String()),
+							err: t.Optional(t.String()),
+						}),
+					}),
+				}),
+				400: t.Object({
+					message: t.String(),
+					error: t.String(),
+				}),
+			},
+			details: {
+				description: "Update a stack",
+			},
+		},
+	)
+	.group("/:name/containers", (app) => app.use(containers));
+
+export default stacks;

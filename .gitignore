@@ -40,8 +40,9 @@ yarn-error.log*
 package-lock.json
 **/*.bun
 
-/Backend/repositories
-/Backend/repositories-test
+/Backend/stacks
+/Backend/stacks-test
 
 # Database
+Backend/database/
 *.sqlite
