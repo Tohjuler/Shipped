@@ -106,8 +106,9 @@ async function updateFailed(
 ) {
 	sendNotification(
 		stack,
+		"stack:update-failed",
 		"Failed to update",
-		`Failed to update the stack ${stack.name} (${stack.url})\nError: ${error.message}${stack.revertOnFailure ? "\nReverting changes" : ""}`,
+		`Error: ${error.message}${stack.revertOnFailure ? "\nReverting changes" : ""}`,
 	);
 
 	if (!stack.revertOnFailure) return;
@@ -155,8 +156,9 @@ async function updateFailed(
 
 		sendNotification(
 			stack,
+			"stack:update-failed-revert",
 			"Failed to revert changes",
-			`Failed to revert changes for ${stack.name} (${stack.url})\nErrors: ${errors
+			`Errors: ${errors
 				.map((e) => e.message)
 				.join("\n")}`,
 		);

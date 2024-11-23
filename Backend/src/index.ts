@@ -108,23 +108,25 @@ const app = new Elysia({
 
 					lastCheck[stack.name] = Date.now();
 					handleUpdateCheck(stack)
-						.then(() =>
+						.then(res => {
 							logger.debug(
 								`Finished for updates for ${stack.name} (${stack.url})`,
-							),
-						)
+							);
+							if (res?.updated)
+								sendNotification(
+									stack,
+									"stack:updated",
+									"Stack updated",
+									`Updated from ${res.from} to ${res.to}`,
+								);
+						})
 						.catch((err) => {
 							logger.error("Failed to check for updates", err);
-							sendNotification(
-								stack,
-								"Failed to check for updates",
-								err.message,
-							);
 						});
 				}
 			},
 		}),
-	);
+	).listen(process.env.PORT ?? 5055);
 
 async function main() {
 	await connect();

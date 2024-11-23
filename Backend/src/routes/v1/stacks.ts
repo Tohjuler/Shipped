@@ -7,6 +7,7 @@ import { eq } from "drizzle-orm";
 import { createInsertSchema, createSelectSchema } from "drizzle-typebox";
 import { Elysia, t } from "elysia";
 import containers from "./subroutes/containers";
+import { sendNotification } from "@/utils/notifications";
 
 const _createStack = createInsertSchema(Tables.stacks);
 const _selectStack = createSelectSchema(Tables.stacks);
@@ -71,6 +72,13 @@ const stacks = new Elysia({
 				set.status = 400;
 				return pullAndUpError;
 			}
+
+			sendNotification(
+				undefined,
+				"global:stack-created",
+				"Stack created",
+				`Stack ${stack.name} created from ${stack.url}\nBranch: ${stack.branch}`,
+			);
 
 			set.status = 201;
 			return stack;
@@ -147,6 +155,13 @@ const stacks = new Elysia({
 				set.status = 400;
 				return res;
 			}
+
+			sendNotification(
+				undefined,
+				"global:stack-created",
+				"Stack created",
+				`Stack ${stack.name} created from file`,
+			)
 
 			set.status = 201;
 			return stack;
@@ -411,6 +426,13 @@ const stacks = new Elysia({
 				};
 			}
 
+			sendNotification(
+				stack[0],
+				"global:stack-deleted",
+				"Stack deleted",
+				`Stack ${params.name} deleted\nType: ${stack[0].type}`,
+			)
+
 			set.status = 200;
 			return {
 				message: "Stack deleted successfully",
@@ -470,6 +492,13 @@ const stacks = new Elysia({
 					message: "No updates found",
 				};
 			}
+
+			sendNotification(
+				stack[0],
+				"stack:updated",
+				"Stack updated",
+				`Updated from ${checkRes.from} to ${checkRes.to}`,
+			);
 
 			set.status = 200;
 			return {
@@ -683,28 +712,39 @@ const stacks = new Elysia({
 			if (error || !stack || stack.length === 0) {
 				set.status = 400;
 				return {
-					message: "Failed to fetch the stack",
-					error: error?.message ?? "Unknown error",
+					message: error ? "Failed to fetch the stack" : "Stack not found",
+					error: error?.message,
+				};
+			}
+
+			const failed = (message: string, error: Error | null) => {
+				sendNotification(
+					stack[0],
+					"stack:containers-update-failed",
+					"Failed to update containers",
+					`Error: ${error?.message ?? "Something went wrong..."}`,
+				);
+				set.status = 400;
+				return {
+					message: message,
+					error: error?.message,
 				};
 			}
 
 			const [pullRes, pullError] = await safeAwait(compose.pull(stack[0]));
-			if (pullError || !pullRes) {
-				set.status = 400;
-				return {
-					message: "Failed to pull docker images",
-					error: pullError?.message ?? "Unknown error",
-				};
-			}
+			if (pullError || !pullRes)
+				return failed("Failed to pull images", pullError);
 
 			const [upRes, upError] = await safeAwait(compose.up(stack[0]));
-			if (upError || !upRes) {
-				set.status = 400;
-				return {
-					message: "Failed to start docker containers",
-					error: upError?.message ?? "Unknown error",
-				};
-			}
+			if (upError || !upRes)
+				return failed("Failed to start containers", upError);
+
+			sendNotification(
+				stack[0],
+				"stack:containers-updated",
+				"Stack updated",
+				"Containers updated",
+			);
 
 			set.status = 200;
 			return {
@@ -741,7 +781,7 @@ const stacks = new Elysia({
 				}),
 				400: t.Object({
 					message: t.String(),
-					error: t.String(),
+					error: t.Optional(t.String()),
 				}),
 			},
 			details: {
