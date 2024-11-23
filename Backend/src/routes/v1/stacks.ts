@@ -14,8 +14,6 @@ const _selectStack = createSelectSchema(Tables.stacks);
 
 const baseDir = process.env.STACKS_DIR ?? "/stacks";
 
-// TODO: Endpoint to get compose file and .env from file type stacks
-
 const stacks = new Elysia({
 	prefix: "stacks",
 	tags: ["stacks"],
@@ -286,10 +284,16 @@ const stacks = new Elysia({
 			}
 			const stack = stacks[0];
 
+			const files = stack.type === "file" ? {
+				composeFile: await Bun.file(`${baseDir}/${stack.name}/docker-compose.yml`).text(),
+				envFile: await Bun.file(`${baseDir}/${stack.name}/.env`).text(),
+			} : {};
+
 			set.status = 200;
 			const status = await compose.getStatus(stack);
 			return {
 				...stack,
+				...files,
 				status: status.status,
 				containers: status.containers,
 			};
@@ -302,6 +306,8 @@ const stacks = new Elysia({
 				200: t.Intersect([
 					t.Omit(_selectStack, ["type"]),
 					t.Object({
+						composeFile: t.Optional(t.String()),
+						envFile: t.Optional(t.String()),
 						status: t.Union([
 							t.Literal("ACTIVE"),
 							t.Literal("INACTIVE"),
