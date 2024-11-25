@@ -6,6 +6,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { getStacks, type StackInfo } from "@/lib/apiUtils";
 import { useServerManager } from "@/lib/tokenProvider";
 import Link from "next/link";
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export default function StacksCard() {
 	const serverManager = useServerManager();
@@ -13,6 +19,7 @@ export default function StacksCard() {
 	const [stacks, setStacks] = useState<StackInfo[]>([]);
 
 	useEffect(() => {
+		setFetched(false);
 		getStacks(serverManager?.selectedServer?.url).then((stacks) => {
 			setStacks(stacks);
 			setFetched(true);
@@ -23,9 +30,21 @@ export default function StacksCard() {
 		<Card className="h-full">
 			<CardHeader className="flex-row space-y-0 p-3">
 				<CardTitle className="my-auto">Stacks</CardTitle>
-				<Button className="bg-green-600 hover:bg-green-700 w-[20%] ml-auto" asChild>
-					<Link href="/new-stack">New Stack</Link>
-				</Button>
+				<DropdownMenu>
+					<DropdownMenuTrigger asChild>
+						<Button className="bg-green-600 hover:bg-green-700 w-[20%] ml-auto">
+							New Stack
+						</Button>
+					</DropdownMenuTrigger>
+					<DropdownMenuContent>
+						<DropdownMenuItem asChild>
+							<Link href="/new-stack/git">From Git</Link>
+						</DropdownMenuItem>
+						<DropdownMenuItem asChild>
+							<Link href="/new-stack/file">From File</Link>
+						</DropdownMenuItem>
+					</DropdownMenuContent>
+				</DropdownMenu>
 			</CardHeader>
 			<hr className="mb-2 mx-2" />
 			<CardContent className="p-2">
@@ -43,7 +62,12 @@ export default function StacksCard() {
 
 function Stack({ name, url, branch, commit, status }: StackInfo) {
 	return (
-		<Card className="flex p-2 w-full cursor-pointer hover:scale-[1.02] duration-300">
+		<Card
+			className="flex p-2 w-full cursor-pointer hover:scale-[1.02] duration-300"
+			onClick={() => {
+				window.location.href = `/stack/${name}`;
+			}}
+		>
 			<StatusIndicator status={status} />
 			<div className="w-[95%]">
 				<h1>{name}</h1>
