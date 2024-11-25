@@ -1,7 +1,7 @@
 "use client";
 import { CiServer } from "react-icons/ci";
 import { Button } from "./ui/button";
-import { useServerManager } from "@/lib/tokenProvider";
+import { useServerManager } from "@/lib/serverManagerProvider";
 import {
 	Dialog,
 	DialogContent,

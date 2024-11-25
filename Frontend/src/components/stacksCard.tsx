@@ -4,7 +4,7 @@ import StatusIndicator from "./statusIndicator";
 import { Button } from "./ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { getStacks, type StackInfo } from "@/lib/apiUtils";
-import { useServerManager } from "@/lib/tokenProvider";
+import { useServerManager } from "@/lib/serverManagerProvider";
 import Link from "next/link";
 import {
 	DropdownMenu,
@@ -16,14 +16,26 @@ import {
 export default function StacksCard() {
 	const serverManager = useServerManager();
 	const [fetched, setFetched] = useState(false);
-	const [stacks, setStacks] = useState<StackInfo[]>([]);
+	const [stacks, setStacks] = useState<StackInfo[] | undefined>(undefined);
 
+	// biome-ignore lint/correctness/useExhaustiveDependencies: If serverManager is added as a dependency, the useEffect will run infinitely
 	useEffect(() => {
+		if (!serverManager) return;
+
+		if (!stacks && serverManager.cache.stacks) {
+			setStacks(serverManager.cache.stacks as StackInfo[]);
+			setFetched(true);
+			return;
+		}
+
 		setFetched(false);
-		getStacks(serverManager?.selectedServer?.url).then((stacks) => {
+		getStacks(serverManager.selectedServer?.url).then((stacks) => {
 			setStacks(stacks);
 			setFetched(true);
+
+			if (serverManager) serverManager.cache.stacks = stacks;
 		});
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [serverManager?.selectedServer]);
 
 	return (
@@ -49,10 +61,10 @@ export default function StacksCard() {
 			<hr className="mb-2 mx-2" />
 			<CardContent className="p-2">
 				{!fetched && <p className="text-center text-gray-400">Loading...</p>}
-				{fetched && stacks.length === 0 && (
+				{fetched && stacks?.length === 0 && (
 					<p className="text-center text-gray-400">No stacks found</p>
 				)}
-				{stacks.map((stack) => (
+				{stacks?.map((stack) => (
 					<Stack key={stack.name} {...stack} />
 				))}
 			</CardContent>

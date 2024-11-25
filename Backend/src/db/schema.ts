@@ -7,9 +7,9 @@ export type StackType = "git" | "file";
 export const stacks = table("stacks", {
 	name: t.text("name").primaryKey(),
 	type: t.text("type").notNull().$type<StackType>(),
-	url: t.text("url"),
-
+	
 	// Git
+	url: t.text("url"),
 	cloneDepth: t.integer("clone_depth").default(0), // 0 = Use .env value, -1 = Full clone
 	branch: t.text("branch"),
 	fetchInterval: t.text("fetch_interval").default("15m"),

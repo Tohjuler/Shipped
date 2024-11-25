@@ -45,7 +45,9 @@ const app = new Elysia({
 			},
 		}),
 	)
-	.use(cors())
+	.use(cors({
+		origin: "*",
+	}))
 	.use(serverTiming())
 	.use(bearer())
 	.onBeforeHandle(async ({ path, bearer, set }) => {

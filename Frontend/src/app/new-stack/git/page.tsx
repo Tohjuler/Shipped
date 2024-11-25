@@ -1,5 +1,5 @@
 import Header from "@/components/header";
-import NoStackHome from "@/components/noStackHome";
+import NewGitStack from "@/components/newGitStack";
 import StacksCard from "@/components/stacksCard";
 import type React from "react";
 
@@ -13,7 +13,7 @@ export default function Home() {
 					<StacksCard />
 				</div>
 				<div className="w-[75%] h-full m-4">
-					<NoStackHome />
+					<NewGitStack />
 				</div>
 			</div>
 		</div>

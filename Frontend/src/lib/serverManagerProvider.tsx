@@ -14,6 +14,9 @@ const ServerContext = createContext<
 			selectServer: (url?: string) => void;
 			addServer: (server: ServerLogin) => void;
 			removeServer: (url: string) => void;
+
+			// Cache
+			cache: Record<string, unknown>;
 	  }
 	| undefined
 >(undefined);
@@ -21,6 +24,8 @@ const ServerContext = createContext<
 export const TokenProvider = ({ children }: { children: React.ReactNode }) => {
 	const [selected, setSelected] = useState<string | undefined>(undefined);
 	const [servers, setServers] = useState<ServerLogin[] | undefined>(undefined);
+
+	const [cache, setCache] = useState<{ [key: string]: unknown }>({});
 
 	useEffect(() => {
 		const server = localStorage.getItem("server");
@@ -55,6 +60,15 @@ export const TokenProvider = ({ children }: { children: React.ReactNode }) => {
 		setServers(newServers);
 	};
 
+	const cacheProxy = new Proxy(cache, {
+		set: (target, key: string, value) => {
+			setCache({ ...target, [key]: value });
+			return true;
+		},
+
+		get: (target, key: string) => target[key],
+	});
+
 	return (
 		<ServerContext.Provider
 			value={{
@@ -63,6 +77,8 @@ export const TokenProvider = ({ children }: { children: React.ReactNode }) => {
 				selectServer,
 				addServer,
 				removeServer,
+
+				cache: cacheProxy,
 			}}
 		>
 			{children}

@@ -95,7 +95,7 @@ export default function StackSettings() {
 	);
 }
 
-function EditorContainer({
+export function EditorContainer({
 	editorName,
 	text,
 	children,
