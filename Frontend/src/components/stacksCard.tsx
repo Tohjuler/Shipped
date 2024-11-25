@@ -1,17 +1,17 @@
 "use client";
-import { useEffect, useState } from "react";
-import StatusIndicator from "./statusIndicator";
-import { Button } from "./ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
-import { getStacks, type StackInfo } from "@/lib/apiUtils";
-import { useServerManager } from "@/lib/serverManagerProvider";
-import Link from "next/link";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
 	DropdownMenuItem,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { type StackInfo, getStacks } from "@/lib/apiUtils";
+import { useServerManager } from "@/lib/serverManagerProvider";
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import StatusIndicator from "./statusIndicator";
+import { Button } from "./ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 
 export default function StacksCard() {
 	const serverManager = useServerManager();

@@ -1,6 +1,6 @@
 "use client";
 import type React from "react";
-import { createContext, useState, useEffect, useContext } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 
 interface ServerLogin {
 	url: string;
@@ -41,7 +41,7 @@ export const TokenProvider = ({ children }: { children: React.ReactNode }) => {
 		if (!url) {
 			if (servers && servers.length > 0) selectServer(servers[0].url);
 			else setSelected(undefined);
-            return;
+			return;
 		}
 
 		localStorage.setItem("server", url);

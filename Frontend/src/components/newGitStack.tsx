@@ -1,59 +1,61 @@
 "use client";
 
+import { useToast } from "@/hooks/use-toast";
+import { createStack } from "@/lib/apiUtils";
+import { useServerManager } from "@/lib/serverManagerProvider";
 import { useRef } from "react";
 import GitStackSettings, { type GitStackSettingsRef } from "./gitStackSettings";
 import { Button } from "./ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
-import { useToast } from "@/hooks/use-toast";
-import { createStack } from "@/lib/apiUtils";
-import { useServerManager } from "@/lib/serverManagerProvider";
 
 export default function NewGitStack() {
-    const serverManager = useServerManager();
-    const { toast } = useToast();
-    const inputsRef = useRef<GitStackSettingsRef>(null);
+	const serverManager = useServerManager();
+	const { toast } = useToast();
+	const inputsRef = useRef<GitStackSettingsRef>(null);
 
-    const handleCreate = () => {
-        const stack = inputsRef.current?.getStack();
-        if (!stack) {
-            toast({
-                title: "Error",
-                description: "Someting went wrong... Please try again.",
-                variant: "destructive",
-            })
-            return;
-        }
+	const handleCreate = () => {
+		const stack = inputsRef.current?.getStack();
+		if (!stack) {
+			toast({
+				title: "Error",
+				description: "Someting went wrong... Please try again.",
+				variant: "destructive",
+			});
+			return;
+		}
 
-        if (!serverManager?.selectedServer) {
-            toast({
-                description: "No server selected.",
-                variant: "destructive",
-            });
-            return;
-        }
+		if (!serverManager?.selectedServer) {
+			toast({
+				description: "No server selected.",
+				variant: "destructive",
+			});
+			return;
+		}
 
-        createStack(serverManager?.selectedServer?.url, stack).then((res) => {
-            if (typeof res === "string") {
-                toast({
-                    description: res,
-                    variant: "destructive",
-                });
-                return;
-            }
+		createStack(serverManager?.selectedServer?.url, stack)
+			.then((res) => {
+				if (typeof res === "string") {
+					toast({
+						description: res,
+						variant: "destructive",
+					});
+					return;
+				}
 
-            toast({
-                title: "Success",
-                description: "Stack created successfully.",
-                variant: "success",
-            });
-        }).catch((err) => {
-            toast({
-                title: "Error",
-                description: err.message,
-                variant: "destructive",
-            });
-        });
-    };
+				toast({
+					title: "Success",
+					description: "Stack created successfully.",
+					variant: "success",
+				});
+			})
+			.catch((err) => {
+				toast({
+					title: "Error",
+					description: err.message,
+					variant: "destructive",
+				});
+			});
+	};
 
 	return (
 		<div className="h-full">
@@ -64,8 +66,10 @@ export default function NewGitStack() {
 				<hr className="mb-2 mx-2" />
 				<CardContent className="p-2 space-y-2 w-full">
 					<GitStackSettings ref={inputsRef} />
-                    <hr className="!mt-5" />
-                    <Button variant="active" onClick={handleCreate}>Create</Button>
+					<hr className="!mt-5" />
+					<Button variant="active" onClick={handleCreate}>
+						Create
+					</Button>
 				</CardContent>
 			</Card>
 		</div>

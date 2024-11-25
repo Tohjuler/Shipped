@@ -31,10 +31,7 @@ export default function StatusIndicator({
 			);
 		case "none":
 			return (
-				<div
-					className={cn("w-[5%] mr-2 rounded", className)}
-					{...props}
-				/>
+				<div className={cn("w-[5%] mr-2 rounded", className)} {...props} />
 			);
 		default:
 			return null;

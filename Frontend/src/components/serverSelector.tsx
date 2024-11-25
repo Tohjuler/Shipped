@@ -1,7 +1,4 @@
 "use client";
-import { CiServer } from "react-icons/ci";
-import { Button } from "./ui/button";
-import { useServerManager } from "@/lib/serverManagerProvider";
 import {
 	Dialog,
 	DialogContent,
@@ -10,13 +7,16 @@ import {
 	DialogTitle,
 	DialogTrigger,
 } from "@/components/ui/dialog";
-import { Label } from "./ui/label";
-import { Input } from "./ui/input";
-import { useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { useServerManager } from "@/lib/serverManagerProvider";
+import { useRef } from "react";
+import { CiServer } from "react-icons/ci";
 import { FaTrashAlt } from "react-icons/fa";
-import { Card } from "./ui/card";
 import StatusIndicator from "./statusIndicator";
+import { Button } from "./ui/button";
+import { Card } from "./ui/card";
+import { Input } from "./ui/input";
+import { Label } from "./ui/label";
 
 export default function ServerSelector() {
 	const serverManager = useServerManager();
@@ -128,7 +128,12 @@ export default function ServerSelector() {
 										}
 									/>
 									<u className="my-auto text-lg">{server.url}</u>
-									<Button variant="destructive" size="icon" className="ml-auto" onClick={() => deleteServer(server.url)}>
+									<Button
+										variant="destructive"
+										size="icon"
+										className="ml-auto"
+										onClick={() => deleteServer(server.url)}
+									>
 										<FaTrashAlt />
 									</Button>
 								</Card>

@@ -2,10 +2,12 @@
 
 import { highlight, languages } from "prismjs";
 import { useState } from "react";
+import Editor from "react-simple-code-editor";
+import { EditorContainer } from "./stackSettings";
 import { Button } from "./ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
-import { Label } from "./ui/label";
 import { Input } from "./ui/input";
+import { Label } from "./ui/label";
 import {
 	Select,
 	SelectContent,
@@ -13,8 +15,6 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "./ui/select";
-import { EditorContainer } from "./stackSettings";
-import Editor from "react-simple-code-editor";
 
 export default function NewFileStack() {
 	const [code, setCode] = useState(

@@ -1,6 +1,7 @@
 "use client";
 
 import type { Stack } from "@/lib/apiUtils";
+import { forwardRef, useImperativeHandle, useRef, useState } from "react";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import {
@@ -11,12 +12,6 @@ import {
 	SelectValue,
 } from "./ui/select";
 import { Switch } from "./ui/switch";
-import {
-	forwardRef,
-	useImperativeHandle,
-	useRef,
-	useState,
-} from "react";
 
 export interface GitStackSettingsRef {
 	getStack: () => Stack;
