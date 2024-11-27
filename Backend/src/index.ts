@@ -47,6 +47,7 @@ const app = new Elysia({
 	)
 	.use(cors({
 		origin: "*",
+		methods: "*",
 	}))
 	.use(serverTiming())
 	.use(bearer())
@@ -134,7 +135,7 @@ async function main() {
 	await connect();
 
 	if ((await db.select().from(Tables.keys)).length === 0) {
-		const key = randomString(32);
+		const key = process.env.DEFAULT_KEY ?? randomString(32);
 		await db.insert(Tables.keys).values({
 			key: key,
 			description: "Default key",

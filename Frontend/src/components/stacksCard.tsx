@@ -29,7 +29,7 @@ export default function StacksCard() {
 		}
 
 		setFetched(false);
-		getStacks(serverManager.selectedServer?.url).then((stacks) => {
+		getStacks(serverManager.selectedServer).then((stacks) => {
 			setStacks(stacks);
 			setFetched(true);
 

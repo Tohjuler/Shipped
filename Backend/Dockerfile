@@ -10,6 +10,9 @@ RUN bun install --production
 
 FROM oven/bun
 
+RUN apt-get update && apt-get install -y git
+RUN apt-get clean && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 
 COPY --from=build /app/node_modules ./node_modules

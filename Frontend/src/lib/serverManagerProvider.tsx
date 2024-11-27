@@ -2,7 +2,7 @@
 import type React from "react";
 import { createContext, useContext, useEffect, useState } from "react";
 
-interface ServerLogin {
+export interface ServerLogin {
 	url: string;
 	token: string;
 }

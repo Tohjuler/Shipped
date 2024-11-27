@@ -1,7 +1,13 @@
 "use client";
 
 import type { Stack } from "@/lib/apiUtils";
-import { forwardRef, useImperativeHandle, useRef, useState } from "react";
+import {
+	forwardRef,
+	useEffect,
+	useImperativeHandle,
+	useRef,
+	useState,
+} from "react";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import {
@@ -15,14 +21,16 @@ import { Switch } from "./ui/switch";
 
 export interface GitStackSettingsRef {
 	getStack: () => Stack;
+	isValid: () => string | undefined;
 }
 
 interface GitStackSettingsProps {
 	disabled?: boolean;
+	stack?: Stack;
 }
 
 const GitStackSettings = forwardRef<GitStackSettingsRef, GitStackSettingsProps>(
-	({ disabled }, ref) => {
+	({ disabled, stack }, ref) => {
 		const name = useRef<HTMLInputElement>(null);
 		const repo = useRef<HTMLInputElement>(null);
 		const branch = useRef<HTMLInputElement>(null);
@@ -46,7 +54,38 @@ const GitStackSettings = forwardRef<GitStackSettingsRef, GitStackSettingsProps>(
 				notificationUrl: notiUrl.current?.value || "",
 				notificationProvider: notiProvider,
 			}),
+			isValid: () => {
+				if (!name.current?.value) return "Name is required.";
+				if (!name.current?.value.match(/^[a-z0-9_-]{3,30}$/)) return "Invalid name|Only lowercase letters, numbers, - and _ are allowed, and must be between 3 and 30 characters.";
+				if (!repo.current?.value) return "Repository is required.";
+				if (!repo.current?.value.match("((git|ssh|http(s)?)|(git@[\w\.]+))(:(//)?)([\w\.@\:/\-~]+)(\.git)(/)?")) return "Invalid repository|Only valid git urls are allowed.";
+				if (!branch.current?.value) return "Branch is required.";
+				if (!cloneDepth.current?.value) return "Clone depth is required.";
+				if (!cloneDepth.current?.value.match(/^\d+$/)) return "Invalid clone depth|Only numbers are allowed.";
+				if (!fetchInterval.current?.value) return "Fetch interval is required.";
+				if (!fetchInterval.current?.value.match(/^\d+[smhd]$/)) return "Invalid fetch interval|Only valid time units are allowed, e.g. 15m, 1h, 2d.";
+				return undefined;
+			},
 		}));
+
+		useEffect(() => {
+			if (!stack) return;
+
+			if (name.current) name.current.value = stack.name;
+			if (repo.current && stack.url) repo.current.value = stack.url;
+			if (branch.current && stack.branch) branch.current.value = stack.branch;
+			if (cloneDepth.current)
+				cloneDepth.current.value = stack.cloneDepth.toString();
+			if (composePath.current && stack.composePath)
+				composePath.current.value = stack.composePath;
+			if (fetchInterval.current)
+				fetchInterval.current.value = stack.fetchInterval;
+			setRevertFailed(stack.revertOnFailure);
+			if (notiUrl.current && stack.notificationUrl)
+				notiUrl.current.value = stack.notificationUrl;
+			if (stack.notificationProvider)
+				setNotiProvider(stack.notificationProvider);
+		}, [stack]);
 
 		return (
 			<>
@@ -78,6 +117,7 @@ const GitStackSettings = forwardRef<GitStackSettingsRef, GitStackSettingsProps>(
 							disabled={disabled}
 							type="text"
 							id="branch"
+							defaultValue="main"
 							placeholder="main"
 						/>
 					</div>
@@ -88,6 +128,7 @@ const GitStackSettings = forwardRef<GitStackSettingsRef, GitStackSettingsProps>(
 							disabled={disabled}
 							type="number"
 							id="depth"
+							defaultValue={1}
 							placeholder="1"
 						/>
 					</div>
@@ -111,6 +152,7 @@ const GitStackSettings = forwardRef<GitStackSettingsRef, GitStackSettingsProps>(
 							disabled={disabled}
 							type="text"
 							id="fetchInterval"
+							defaultValue="15m"
 							placeholder="15m"
 						/>
 					</div>

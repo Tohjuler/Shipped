@@ -14,6 +14,15 @@ export default function NewGitStack() {
 	const inputsRef = useRef<GitStackSettingsRef>(null);
 
 	const handleCreate = () => {
+		const valid = inputsRef.current?.isValid();
+		if (valid) {
+			toast({
+				title: valid.split("|")[0] ?? undefined,
+				description: valid.split("|").slice(1).join("|") ?? "Something went wrong...",
+				variant: "destructive",
+			});
+			return
+		}
 		const stack = inputsRef.current?.getStack();
 		if (!stack) {
 			toast({
@@ -32,7 +41,7 @@ export default function NewGitStack() {
 			return;
 		}
 
-		createStack(serverManager?.selectedServer?.url, stack)
+		createStack(serverManager?.selectedServer, stack)
 			.then((res) => {
 				if (typeof res === "string") {
 					toast({

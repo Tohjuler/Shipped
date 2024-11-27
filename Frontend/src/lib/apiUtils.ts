@@ -1,4 +1,5 @@
 import axios from "axios";
+import type { ServerLogin } from "./serverManagerProvider";
 export interface StackInfo {
 	name: string;
 	url?: string;
@@ -31,10 +32,24 @@ export interface Stack {
 	updatedAt?: string;
 }
 
-export async function getStacks(serverUrl?: string): Promise<StackInfo[]> {
-	if (!serverUrl) return [];
+function url(serverUrl: string, path: string) {
+	const url = serverUrl.endsWith("/") ? serverUrl.slice(0, -1) : serverUrl;
+
+	return `${url}/v1/${path}`;
+}
+
+function authHeader(server: ServerLogin) {
+	return {
+		headers: {
+			Authorization: `Bearer ${server.token}`,
+		},
+	};
+}
+
+export async function getStacks(server?: ServerLogin): Promise<StackInfo[]> {
+	if (!server || !server.url) return [];
 	return await axios
-		.get<StackInfo[]>(`${serverUrl}/v1/stacks`)
+		.get<StackInfo[]>(url(server.url, "stacks"), authHeader(server))
 		.then((response) => response.data)
 		.catch(() => {
 			// TODO: Handle error
@@ -43,11 +58,11 @@ export async function getStacks(serverUrl?: string): Promise<StackInfo[]> {
 }
 
 export async function createStack(
-	serverUrl: string,
+	server: ServerLogin,
 	stack: Stack,
 ): Promise<Stack | string> {
 	return await axios
-		.post(`${serverUrl}/v1/stacks/${stack.type}`, stack)
+		.post(url(server.url, `stacks/${stack.type}`), stack, authHeader(server))
 		.then((response) => {
 			if (response.status === 201) return response.data;
 			if (response.status === 400)
