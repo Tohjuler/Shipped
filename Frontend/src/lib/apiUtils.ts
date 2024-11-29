@@ -14,10 +14,10 @@ export interface Stack {
 
 	// Git
 	url?: string;
-	cloneDepth: number;
+	cloneDepth?: number;
 	branch?: string;
-	fetchInterval: string;
-	revertOnFailure: boolean;
+	fetchInterval?: string;
+	revertOnFailure?: boolean;
 	composePath?: string;
 
 	// File

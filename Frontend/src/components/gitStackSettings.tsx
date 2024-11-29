@@ -74,13 +74,13 @@ const GitStackSettings = forwardRef<GitStackSettingsRef, GitStackSettingsProps>(
 			if (name.current) name.current.value = stack.name;
 			if (repo.current && stack.url) repo.current.value = stack.url;
 			if (branch.current && stack.branch) branch.current.value = stack.branch;
-			if (cloneDepth.current)
+			if (cloneDepth.current && stack.cloneDepth)
 				cloneDepth.current.value = stack.cloneDepth.toString();
 			if (composePath.current && stack.composePath)
 				composePath.current.value = stack.composePath;
-			if (fetchInterval.current)
+			if (fetchInterval.current && stack.fetchInterval)
 				fetchInterval.current.value = stack.fetchInterval;
-			setRevertFailed(stack.revertOnFailure);
+			setRevertFailed(stack.revertOnFailure ?? false);
 			if (notiUrl.current && stack.notificationUrl)
 				notiUrl.current.value = stack.notificationUrl;
 			if (stack.notificationProvider)

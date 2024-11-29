@@ -56,6 +56,7 @@ export default function NewGitStack() {
 					description: "Stack created successfully.",
 					variant: "success",
 				});
+				window.location.href = `/stack/${res.name}`;
 			})
 			.catch((err) => {
 				toast({
@@ -68,7 +69,7 @@ export default function NewGitStack() {
 
 	return (
 		<div className="h-full">
-			<Card className="md:w-[58%] p-2 mx-auto h-fit mt-2 lg:mt-0">
+			<Card className="md:w-[58%] p-2 mx-auto h-fit my-2 lg:mt-0">
 				<CardHeader className="flex-row space-y-0 p-3">
 					<CardTitle className="my-auto">New Stack from Git</CardTitle>
 				</CardHeader>

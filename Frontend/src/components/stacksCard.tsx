@@ -44,7 +44,7 @@ export default function StacksCard() {
 				<CardTitle className="my-auto">Stacks</CardTitle>
 				<DropdownMenu>
 					<DropdownMenuTrigger asChild>
-						<Button className="bg-green-600 hover:bg-green-700 w-[20%] ml-auto">
+						<Button className="bg-green-600 hover:bg-green-700 w-fit ml-auto">
 							New Stack
 						</Button>
 					</DropdownMenuTrigger>
