@@ -32,6 +32,23 @@ export interface Stack {
 	updatedAt?: string;
 }
 
+export interface Container {
+	name: string;
+	image: string;
+	command: string;
+	state: string;
+	ports: {
+		mapped?: { address: string; port: number };
+		exposed: { port: number; protocol: string };
+	}[];
+}
+
+export interface ExtededStack extends Stack {
+	currentCommit?: string;
+	status: "ACTIVE" | "INACTIVE" | "DOWNED" | "NONE";
+	containers: Container[];
+}
+
 function url(serverUrl: string, path: string) {
 	const url = serverUrl.endsWith("/") ? serverUrl.slice(0, -1) : serverUrl;
 
@@ -54,6 +71,24 @@ export async function getStacks(server?: ServerLogin): Promise<StackInfo[]> {
 		.catch(() => {
 			// TODO: Handle error
 			return [];
+		});
+}
+
+export async function getStack(
+	server: ServerLogin | undefined,
+	stackName: string,
+): Promise<{ status: number, stack: ExtededStack | undefined } | undefined> {
+	if (!server || !server.url) return undefined;
+
+	return await axios
+		.get<ExtededStack>(
+			url(server.url, `stacks/${stackName}`),
+			authHeader(server),
+		)
+		.then((response) =>({ status: response.status, stack: response.data }))
+		.catch((err) => {
+			// TODO: Handle error
+			return { status: err.response.status, stack: undefined };
 		});
 }
 

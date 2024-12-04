@@ -1,5 +1,6 @@
 import type { stack } from "@/db/schema";
 import * as compose from "docker-compose";
+import mapPorts from "docker-compose/dist/map-ports";
 import { safeAwait } from "./utils";
 import logger from "./logger";
 
@@ -12,7 +13,9 @@ function handleOptions(stack: stack): compose.IDockerComposeOptions {
 }
 
 function pull(stack: stack): Promise<compose.IDockerComposeResult> {
-	logger.debug(`Pulling images for stack ${stack.name} at ${baseDir}/${stack.name}/${stack.composePath ?? "docker-compose.yml"}`);
+	logger.debug(
+		`Pulling images for stack ${stack.name} at ${baseDir}/${stack.name}/${stack.composePath ?? "docker-compose.yml"}`,
+	);
 	return compose.pullAll({
 		...handleOptions(stack),
 		cwd: `${baseDir}/${stack.name}`,
@@ -21,7 +24,9 @@ function pull(stack: stack): Promise<compose.IDockerComposeResult> {
 }
 
 function up(stack: stack): Promise<compose.IDockerComposeResult> {
-	logger.debug(`Starting stack ${stack.name} at ${baseDir}/${stack.name}/${stack.composePath ?? "docker-compose.yml"}`);
+	logger.debug(
+		`Starting stack ${stack.name} at ${baseDir}/${stack.name}/${stack.composePath ?? "docker-compose.yml"}`,
+	);
 	return compose.upAll({
 		...handleOptions(stack),
 		cwd: `${baseDir}/${stack.name}`,
@@ -29,8 +34,13 @@ function up(stack: stack): Promise<compose.IDockerComposeResult> {
 	});
 }
 
-function down(stack: stack, full = false): Promise<compose.IDockerComposeResult> {
-	logger.debug(`Stopping stack ${stack.name} at ${baseDir}/${stack.name}/${stack.composePath ?? "docker-compose.yml"}${full ? " and removing volumes" : ""}`);
+function down(
+	stack: stack,
+	full = false,
+): Promise<compose.IDockerComposeResult> {
+	logger.debug(
+		`Stopping stack ${stack.name} at ${baseDir}/${stack.name}/${stack.composePath ?? "docker-compose.yml"}${full ? " and removing volumes" : ""}`,
+	);
 
 	const flags = full ? [["-v"]] : [];
 	if (full && (process.env.REMOVE_IMAGE_ON_DELETE ?? "true") === "true")
@@ -45,7 +55,9 @@ function down(stack: stack, full = false): Promise<compose.IDockerComposeResult>
 }
 
 function restart(stack: stack): Promise<compose.IDockerComposeResult> {
-	logger.debug(`Restarting stack ${stack.name} at ${baseDir}/${stack.name}/${stack.composePath ?? "docker-compose.yml"}`);
+	logger.debug(
+		`Restarting stack ${stack.name} at ${baseDir}/${stack.name}/${stack.composePath ?? "docker-compose.yml"}`,
+	);
 	return compose.restartAll({
 		...handleOptions(stack),
 		cwd: `${baseDir}/${stack.name}`,
@@ -78,27 +90,39 @@ async function getStatus(
 	stack: stack | { name: string; composePath?: string | null },
 ): Promise<{
 	status: "ACTIVE" | "INACTIVE" | "DOWN";
-	containers: compose.DockerComposePsResultService[];
+	containers: (compose.DockerComposePsResultService & { image: string })[];
 }> {
 	const result = await compose.ps({
 		cwd: `${baseDir}/${stack.name}`,
-		commandOptions: [
-			["--format", "json"],
-		],
+		commandOptions: [["--format", "json"]],
 		composeOptions: [
 			...(stack.composePath ? [["--file", stack.composePath]] : []),
-		]
+		],
 	});
 	const onlineServices = result.data.services.filter(
 		(service) => service.state === "running",
 	).length;
+
+	const services = result.out
+		.split("\n")
+		.filter((v: string) => v !== "")
+		.map((line) => {
+			const json = JSON.parse(line);
+			return {
+				name: json.Name.trim(),
+				image: json.Image.trim(),
+				command: json.Command.trim(),
+				state: json.State.trim(),
+				ports: mapPorts(json.Ports.trim()),
+			};
+		});
 
 	return {
 		status:
 			onlineServices === result.data.services.length && onlineServices > 0
 				? "ACTIVE"
 				: "INACTIVE", // TODO: Rework statuses
-		containers: result.data.services,
+		containers: services,
 	};
 }
 

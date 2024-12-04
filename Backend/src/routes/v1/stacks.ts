@@ -296,6 +296,7 @@ const stacks = new Elysia({
 				...files,
 				status: status.status,
 				containers: status.containers,
+				currentCommit: stack.type === "git" ? await git.currentCommit(stack) : undefined,
 			};
 		},
 		{
@@ -308,6 +309,7 @@ const stacks = new Elysia({
 					t.Object({
 						composeFile: t.Optional(t.String()),
 						envFile: t.Optional(t.String()),
+						currentCommit: t.Optional(t.String()),
 						status: t.Union([
 							t.Literal("ACTIVE"),
 							t.Literal("INACTIVE"),
@@ -316,6 +318,7 @@ const stacks = new Elysia({
 						containers: t.Array(
 							t.Object({
 								name: t.String(),
+								image: t.String(),
 								command: t.String(),
 								state: t.String(),
 								ports: t.Array(

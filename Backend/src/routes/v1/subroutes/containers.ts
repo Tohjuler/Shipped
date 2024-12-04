@@ -40,6 +40,7 @@ const containers = new Elysia({
 				200: t.Array(
 					t.Object({
 						name: t.String(),
+						image: t.String(),
 						command: t.String(),
 						state: t.String(),
 						ports: t.Array(
@@ -122,6 +123,7 @@ const containers = new Elysia({
 			response: {
 				200: t.Object({
 					name: t.String(),
+					image: t.String(),
 					command: t.String(),
 					state: t.String(),
 					ports: t.Array(
