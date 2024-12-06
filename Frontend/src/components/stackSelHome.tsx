@@ -1,14 +1,19 @@
 "use client";
 
+import { useToast } from "@/hooks/use-toast";
+import {
+	type Container as ContainerInfo,
+	type ExtededStack,
+	getStack,
+} from "@/lib/apiUtils";
 import { useServerManager } from "@/lib/serverManagerProvider";
+import { useEffect, useState } from "react";
+import GitStackSettings from "./gitStackSettings";
 import StackSettings from "./stackSettings";
 import StatusIndicator from "./statusIndicator";
 import { Button } from "./ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
-import { useEffect, useState } from "react";
-import { type ExtededStack, type Container as ContainerInfo, getStack } from "@/lib/apiUtils";
 import { Skeleton } from "./ui/skeleton";
-import { useToast } from "@/hooks/use-toast";
 
 export default function StackSelHome({ stackName }: { stackName: string }) {
 	const { toast } = useToast();
@@ -60,7 +65,9 @@ export default function StackSelHome({ stackName }: { stackName: string }) {
 						<>
 							<hr className="" />
 							<p className="text-gray-400 text-sm min-w-[70%]">{stack.url}</p>
-							<p className="text-gray-400 text-sm">{stack.branch ?? "master"} - {stack.currentCommit ?? "Unknown"}</p>
+							<p className="text-gray-400 text-sm">
+								{stack.branch ?? "master"} - {stack.currentCommit ?? "Unknown"}
+							</p>
 						</>
 					)}
 				</div>
@@ -91,11 +98,9 @@ export default function StackSelHome({ stackName }: { stackName: string }) {
 					</CardHeader>
 					<hr className="mb-2 mx-2" />
 					<CardContent className="p-2 overflow-scroll">
-						{
-							stack.containers.map((container) => (
-								<Container key={container.name} container={container} />
-							))
-						}
+						{stack.containers.map((container) => (
+							<Container key={container.name} container={container} />
+						))}
 					</CardContent>
 				</Card>
 
@@ -106,7 +111,11 @@ export default function StackSelHome({ stackName }: { stackName: string }) {
 					<hr className="mb-2 mx-2" />
 					<CardContent className="p-2 space-y-2 w-full">
 						{/* TODO: Implement */}
-						{/* <GitStackSettings /> */}
+						{stack.type === "git" ? (
+							<GitStackSettings stack={stack} disabled={true} />
+						) : (
+							<StackSettings stack={stack} disabled={true} />
+						)}
 						<StackSettings />
 					</CardContent>
 				</Card>

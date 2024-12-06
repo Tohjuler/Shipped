@@ -13,7 +13,9 @@ export async function sendNotification(
 
 	if (process.env.IGNORE_NOTIFICATIONS_TYPES?.split(",").includes(type)) return;
 
-	const stackInfo = !stack ? "" : `\n---\nStack: ${stack.name}\nType: ${stack.type}${stack.url ? `\nURL: ${stack.url} (${stack.branch ?? "!You should not read this!"})` : ""}`;
+	const stackInfo = !stack
+		? ""
+		: `\n---\nStack: ${stack.name}\nType: ${stack.type}${stack.url ? `\nURL: ${stack.url} (${stack.branch ?? "!You should not read this!"})` : ""}`;
 
 	const title = `${baseTitle}${stack ? ` - ${stack?.name}` : ""}`;
 	const message = `${baseMessage}${stackInfo}`;

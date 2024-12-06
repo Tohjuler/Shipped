@@ -1,5 +1,8 @@
 "use client";
 
+import { useToast } from "@/hooks/use-toast";
+import { createStack } from "@/lib/apiUtils";
+import { useServerManager } from "@/lib/serverManagerProvider";
 import { highlight, languages } from "prismjs";
 import { useRef, useState } from "react";
 import Editor from "react-simple-code-editor";
@@ -15,9 +18,6 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "./ui/select";
-import { useToast } from "@/hooks/use-toast";
-import { useServerManager } from "@/lib/serverManagerProvider";
-import { createStack } from "@/lib/apiUtils";
 
 export default function NewFileStack() {
 	const serverManager = useServerManager();

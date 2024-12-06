@@ -158,9 +158,7 @@ async function updateFailed(
 			stack,
 			"stack:update-failed-revert",
 			"Failed to revert changes",
-			`Errors: ${errors
-				.map((e) => e.message)
-				.join("\n")}`,
+			`Errors: ${errors.map((e) => e.message).join("\n")}`,
 		);
 	} else
 		logger.debug(`Reverted changes for ${stack.name} (${stack.url}) in docker`);

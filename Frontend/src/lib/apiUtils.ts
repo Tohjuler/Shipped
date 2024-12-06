@@ -77,7 +77,7 @@ export async function getStacks(server?: ServerLogin): Promise<StackInfo[]> {
 export async function getStack(
 	server: ServerLogin | undefined,
 	stackName: string,
-): Promise<{ status: number, stack: ExtededStack | undefined } | undefined> {
+): Promise<{ status: number; stack: ExtededStack | undefined } | undefined> {
 	if (!server || !server.url) return undefined;
 
 	return await axios
@@ -85,7 +85,7 @@ export async function getStack(
 			url(server.url, `stacks/${stackName}`),
 			authHeader(server),
 		)
-		.then((response) =>({ status: response.status, stack: response.data }))
+		.then((response) => ({ status: response.status, stack: response.data }))
 		.catch((err) => {
 			// TODO: Handle error
 			return { status: err.response.status, stack: undefined };

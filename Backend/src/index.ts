@@ -27,9 +27,9 @@ const app = new Elysia({
 	},
 })
 	.onError(({ error, code }) => {
-		if (code === 'NOT_FOUND') return
+		if (code === "NOT_FOUND") return;
 
-		console.error(error)
+		console.error(error);
 	})
 	.use(
 		swagger({
@@ -45,10 +45,12 @@ const app = new Elysia({
 			},
 		}),
 	)
-	.use(cors({
-		origin: "*",
-		methods: "*",
-	}))
+	.use(
+		cors({
+			origin: "*",
+			methods: "*",
+		}),
+	)
 	.use(serverTiming())
 	.use(bearer())
 	.onBeforeHandle(async ({ path, bearer, set }) => {
@@ -111,7 +113,7 @@ const app = new Elysia({
 
 					lastCheck[stack.name] = Date.now();
 					handleUpdateCheck(stack)
-						.then(res => {
+						.then((res) => {
 							logger.debug(
 								`Finished for updates for ${stack.name} (${stack.url})`,
 							);
@@ -129,7 +131,8 @@ const app = new Elysia({
 				}
 			},
 		}),
-	).listen(process.env.PORT ?? 5055);
+	)
+	.listen(process.env.PORT ?? 5055);
 
 async function main() {
 	await connect();

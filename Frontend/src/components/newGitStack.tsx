@@ -18,10 +18,11 @@ export default function NewGitStack() {
 		if (valid) {
 			toast({
 				title: valid.split("|")[0] ?? undefined,
-				description: valid.split("|").slice(1).join("|") ?? "Something went wrong...",
+				description:
+					valid.split("|").slice(1).join("|") ?? "Something went wrong...",
 				variant: "destructive",
 			});
-			return
+			return;
 		}
 		const stack = inputsRef.current?.getStack();
 		if (!stack) {

@@ -2,12 +2,12 @@ import { db } from "@/db/db";
 import { Tables } from "@/db/schema";
 import * as compose from "@/utils/dockerUtils";
 import * as git from "@/utils/gitUtils";
+import { sendNotification } from "@/utils/notifications";
 import { handleUpdateCheck, safeAwait } from "@/utils/utils";
 import { eq } from "drizzle-orm";
 import { createInsertSchema, createSelectSchema } from "drizzle-typebox";
 import { Elysia, t } from "elysia";
 import containers from "./subroutes/containers";
-import { sendNotification } from "@/utils/notifications";
 
 const _createStack = createInsertSchema(Tables.stacks);
 const _selectStack = createSelectSchema(Tables.stacks);
@@ -159,7 +159,7 @@ const stacks = new Elysia({
 				"global:stack-created",
 				"Stack created",
 				`Stack ${stack.name} created from file`,
-			)
+			);
 
 			set.status = 201;
 			return stack;
@@ -284,10 +284,15 @@ const stacks = new Elysia({
 			}
 			const stack = stacks[0];
 
-			const files = stack.type === "file" ? {
-				composeFile: await Bun.file(`${baseDir}/${stack.name}/docker-compose.yml`).text(),
-				envFile: await Bun.file(`${baseDir}/${stack.name}/.env`).text(),
-			} : {};
+			const files =
+				stack.type === "file"
+					? {
+							composeFile: await Bun.file(
+								`${baseDir}/${stack.name}/docker-compose.yml`,
+							).text(),
+							envFile: await Bun.file(`${baseDir}/${stack.name}/.env`).text(),
+						}
+					: {};
 
 			set.status = 200;
 			const status = await compose.getStatus(stack);
@@ -296,7 +301,8 @@ const stacks = new Elysia({
 				...files,
 				status: status.status,
 				containers: status.containers,
-				currentCommit: stack.type === "git" ? await git.currentCommit(stack) : undefined,
+				currentCommit:
+					stack.type === "git" ? await git.currentCommit(stack) : undefined,
 			};
 		},
 		{
@@ -421,7 +427,7 @@ const stacks = new Elysia({
 				set.status = 400;
 				return {
 					message: "Failed to stop containers",
-					error: downError.message
+					error: downError.message,
 				};
 			}
 
@@ -440,7 +446,7 @@ const stacks = new Elysia({
 				"global:stack-deleted",
 				"Stack deleted",
 				`Stack ${params.name} deleted\nType: ${stack[0].type}`,
-			)
+			);
 
 			set.status = 200;
 			return {
@@ -738,7 +744,7 @@ const stacks = new Elysia({
 					message: message,
 					error: error?.message,
 				};
-			}
+			};
 
 			const [pullRes, pullError] = await safeAwait(compose.pull(stack[0]));
 			if (pullError || !pullRes)

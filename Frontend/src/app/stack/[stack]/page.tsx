@@ -1,6 +1,6 @@
 import Header from "@/components/header";
-import StacksCard from "@/components/stacksCard";
 import StackSelHome from "@/components/stackSelHome";
+import StacksCard from "@/components/stacksCard";
 
 export default async function Page({
 	params,

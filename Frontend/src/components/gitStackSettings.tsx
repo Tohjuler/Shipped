@@ -56,14 +56,22 @@ const GitStackSettings = forwardRef<GitStackSettingsRef, GitStackSettingsProps>(
 			}),
 			isValid: () => {
 				if (!name.current?.value) return "Name is required.";
-				if (!name.current?.value.match(/^[a-z0-9_-]{3,30}$/)) return "Invalid name|Only lowercase letters, numbers, - and _ are allowed, and must be between 3 and 30 characters.";
+				if (!name.current?.value.match(/^[a-z0-9_-]{3,30}$/))
+					return "Invalid name|Only lowercase letters, numbers, - and _ are allowed, and must be between 3 and 30 characters.";
 				if (!repo.current?.value) return "Repository is required.";
-				if (!repo.current?.value.match("((git|ssh|http(s)?)|(git@[\w\.]+))(:(//)?)([\w\.@\:/\-~]+)(\.git)(/)?")) return "Invalid repository|Only valid git urls are allowed.";
+				if (
+					!repo.current?.value.match(
+						"((git|ssh|http(s)?)|(git@[w.]+))(:(//)?)([w.@:/-~]+)(.git)(/)?",
+					)
+				)
+					return "Invalid repository|Only valid git urls are allowed.";
 				if (!branch.current?.value) return "Branch is required.";
 				if (!cloneDepth.current?.value) return "Clone depth is required.";
-				if (!cloneDepth.current?.value.match(/^\d+$/)) return "Invalid clone depth|Only numbers are allowed.";
+				if (!cloneDepth.current?.value.match(/^\d+$/))
+					return "Invalid clone depth|Only numbers are allowed.";
 				if (!fetchInterval.current?.value) return "Fetch interval is required.";
-				if (!fetchInterval.current?.value.match(/^\d+[smhd]$/)) return "Invalid fetch interval|Only valid time units are allowed, e.g. 15m, 1h, 2d.";
+				if (!fetchInterval.current?.value.match(/^\d+[smhd]$/))
+					return "Invalid fetch interval|Only valid time units are allowed, e.g. 15m, 1h, 2d.";
 				return undefined;
 			},
 		}));
