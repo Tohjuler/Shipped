@@ -15,7 +15,7 @@ ENV NODE_ENV=production
 
 RUN bun run build
 
-FROM alpine:3.20.3 AS git
+FROM alpine:3.21.0 AS git
 RUN apk add --no-cache \
         zlib-dev \
         openssl-dev \
