@@ -28,7 +28,8 @@ RUN curl -fsSLO https://download.docker.com/linux/static/stable/x86_64/docker-${
 
 FROM debian:bullseye-slim
 
-RUN apt update && apt install -y --no-install-recommends curl git && \
+# Install git
+RUN apt update && apt install -y --no-install-recommends git ca-certificates && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
