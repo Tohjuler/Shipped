@@ -15,55 +15,27 @@ ENV NODE_ENV=production
 
 RUN bun run build
 
-FROM alpine:3.20.3 AS git
-RUN apk add --no-cache \
-        zlib-dev \
-        openssl-dev \
-        curl-dev \
-        curl \
-        expat-dev \
-        perl-dev \
-        python3-dev \
-        pcre2-dev \
-        asciidoc \
-        xmlto \
-        perl-error \
-        tcl \
-        tk \
-        make \
-        gcc \
-        g++
+FROM debian:bullseye-slim AS packages
+RUN apt update && apt install -y curl
+
 WORKDIR /src
-ARG gitversion=2.34.1
-RUN curl --output git-${gitversion}.tar.gz \
-         https://mirrors.edge.kernel.org/pub/software/scm/git/git-${gitversion}.tar.gz && \
-    tar -xvzf git-${gitversion}.tar.gz
-RUN export TO=/git && \
-    mkdir -p ${TO} && \
-    cd git-${gitversion} && \
-    make prefix=/usr DESTDIR=${TO} NO_GETTEXT=YesPlease NO_REGEX=YesPlease ICONV_OMITS_BOM=Yes && \
-    make prefix=/usr DESTDIR=${TO} NO_GETTEXT=YesPlease NO_REGEX=YesPlease ICONV_OMITS_BOM=Yes strip && \
-    make prefix=/usr DESTDIR=${TO} NO_GETTEXT=YesPlease NO_REGEX=YesPlease ICONV_OMITS_BOM=Yes install && \
-    # remove files that aren't part of standard package
-    rm -f /git/usr/libexec/git-core/git-cvs* && \
-    rm -f /git/usr/libexec/git-core/git-daemon && \
-    rm -f /git/usr/libexec/git-core/git-fast-import && \
-    rm -f /git/usr/libexec/git-core/git-http-backend && \
-    rm -f /git/usr/libexec/git-core/git-instaweb && \
-    rm -f /git/usr/libexec/git-core/git-remote-testsvn && \
-    rm -f /git/usr/libexec/git-core/git-shell && \
-    rm -f /git/usr/libexec/git-core/git-svn && \
-    rm -f /git/usr/libexec/git-core/*p4* && \
-    rm -f /git/usr/libexec/git-core/mergetools/*p4* && \
-    rm -f /git/usr/libexec/git-core/*email* && \
-    rm -f /git/usr/libexec/git-core/*imap*
+
+ENV DOCKERVERSION=27.3.1
+RUN curl -fsSLO https://download.docker.com/linux/static/stable/x86_64/docker-${DOCKERVERSION}.tgz \
+    && tar xzvf docker-${DOCKERVERSION}.tgz --strip 1 \
+    -C /usr/local/bin docker/docker \
+    && rm docker-${DOCKERVERSION}.tgz
 
 FROM debian:bullseye-slim
 
+RUN apt update && apt install -y --no-install-recommends curl git && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 
-# Copy git
-COPY --from=git /git/usr/ /usr/
+# Docker
+COPY --from=packages /usr/local/bin/docker /usr/local/bin/docker
+COPY --from=docker/compose-bin:edge /docker-compose /usr/libexec/docker/cli-plugins/docker-compose
 
 COPY drizzle drizzle
 
