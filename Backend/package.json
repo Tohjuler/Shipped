@@ -17,7 +17,7 @@
     "@elysiajs/cors": "^1.1.1",
     "@elysiajs/cron": "^1.1.1",
     "@elysiajs/server-timing": "^1.1.0",
-    "@elysiajs/swagger": "^1.1.5",
+    "@elysiajs/swagger": "^1.1.6",
     "@libsql/client": "^0.14.0",
     "docker-compose": "^1.1.0",
     "drizzle-orm": "^0.37.0",
@@ -26,10 +26,10 @@
     "simple-git": "^3.27.0"
   },
   "devDependencies": {
-    "@biomejs/biome": "^1.9.3",
-    "@types/bun": "^1.1.11",
+    "@biomejs/biome": "^1.9.4",
+    "@types/bun": "^1.1.14",
     "bun-types": "latest",
-    "drizzle-kit": "^0.29.0"
+    "drizzle-kit": "^0.29.1"
   },
   "module": "src/index.js"
 }
