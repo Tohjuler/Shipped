@@ -5,10 +5,7 @@ import { safeAwait } from "@/utils/utils";
 import { eq } from "drizzle-orm";
 import Elysia, { t } from "elysia";
 
-const containers = new Elysia({
-	prefix: "containers",
-	tags: ["containers"],
-})
+const containers = new Elysia()
 	.derive(({ request }) => {
 		return {
 			stackName: request.url.split("/")[3], // /v1/stacks/:stack/containers

@@ -106,27 +106,29 @@ const StackSettings = forwardRef<StackSettingsRef, StackSettingsProps>(
 					</EditorContainer>
 				</div>
 
-				<div className="grid w-full gap-1.5">
-					<Label htmlFor="env">.env</Label>
-					<EditorContainer editorName="env" text={env}>
-						<Editor
-							id="env"
-							disabled={disabled}
-							value={env}
-							onValueChange={(env) => setEnv(env)}
-							highlight={(env) =>
-								highlight(env, languages.properties, "properties")
-							}
-							padding={10}
-							style={{
-								fontFamily: '"Fira code", "Fira Mono", monospace',
-								fontSize: 12,
-								marginLeft: `${20 + String((env.match(/\n/g) || []).length + 2).length * 8}px`,
-								color: "#9ca3af",
-							}}
-						/>
-					</EditorContainer>
-				</div>
+				{!disabled && (
+					<div className="grid w-full gap-1.5">
+						<Label htmlFor="env">.env</Label>
+						<EditorContainer editorName="env" text={env}>
+							<Editor
+								id="env"
+								disabled={disabled}
+								value={env}
+								onValueChange={(env) => setEnv(env)}
+								highlight={(env) =>
+									highlight(env, languages.properties, "properties")
+								}
+								padding={10}
+								style={{
+									fontFamily: '"Fira code", "Fira Mono", monospace',
+									fontSize: 12,
+									marginLeft: `${20 + String((env.match(/\n/g) || []).length + 2).length * 8}px`,
+									color: "#9ca3af",
+								}}
+							/>
+						</EditorContainer>
+					</div>
+				)}
 
 				<h1 className="font-semibold leading-none tracking-tight !mt-10">
 					Notifications

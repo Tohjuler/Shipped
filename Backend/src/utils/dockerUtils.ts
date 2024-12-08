@@ -113,7 +113,9 @@ async function getStatus(
 				image: json.Image.trim(),
 				command: json.Command.trim(),
 				state: json.State.trim(),
-				ports: mapPorts(json.Ports.trim()),
+				ports: result.data.services.find(
+					(service) => service.name === json.Name,
+				)?.ports ?? [],
 			};
 		});
 

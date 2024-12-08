@@ -5,7 +5,7 @@ export interface StackInfo {
 	url?: string;
 	branch?: string;
 	commit?: string;
-	status: "active" | "inactive" | "downed" | "none";
+	status: "ACTIVE" | "INACTIVE" | "DOWNED" | "NONE";
 }
 
 export interface Stack {
@@ -36,7 +36,14 @@ export interface Container {
 	name: string;
 	image: string;
 	command: string;
-	state: string;
+	state:
+		| "paused"
+		| "restarting"
+		| "removing"
+		| "running"
+		| "dead"
+		| "created"
+		| "exited";
 	ports: {
 		mapped?: { address: string; port: number };
 		exposed: { port: number; protocol: string };
@@ -62,6 +69,9 @@ function authHeader(server: ServerLogin) {
 		},
 	};
 }
+
+// Get info
+// ---
 
 export async function getStacks(server?: ServerLogin): Promise<StackInfo[]> {
 	if (!server || !server.url) return [];
@@ -91,6 +101,101 @@ export async function getStack(
 			return { status: err.response.status, stack: undefined };
 		});
 }
+
+export async function getStatus(
+	server: ServerLogin | undefined,
+	stackName: string,
+): Promise<
+	| {
+			status: "ACTIVE" | "INACTIVE" | "DOWNED";
+			containers: Container[];
+	  }
+	| undefined
+> {
+	if (!server || !server.url) return undefined;
+
+	return await axios
+		.get(url(server.url, `stacks/${stackName}/containers`), authHeader(server))
+		.then((response) => response.data);
+}
+
+// Controls
+// ---
+
+interface ComposeLog {
+	out: string;
+	err: string;
+}
+
+export interface ApiControlResponse {
+	success: boolean;
+	message: string;
+	log: ComposeLog;
+}
+
+export async function defaultControlCall(
+	server: ServerLogin,
+	stackName: string,
+	action: "start" | "stop" | "restart",
+): Promise<ApiControlResponse> {
+	return await axios
+		.get<{ message: string; log: ComposeLog }>(
+			url(server.url, `stacks/${stackName}/${action}`),
+			authHeader(server),
+		)
+		.then((res) => ({
+			success: res.status === 200,
+			message: res.data.message,
+			log: res.data.log,
+		}))
+		.catch((err) => {
+			if (err.response.status === 500)
+				return { success: false, ...err.response.data };
+
+			return {
+				success: false,
+				message: "Something went wrong...",
+				log: { out: "", err: "" },
+			};
+		});
+}
+
+export async function updateStack(
+	server: ServerLogin,
+	stackName: string,
+): Promise<ApiControlResponse> {
+	return await axios
+		.get<{
+			message: string;
+			log: {
+				pull: ComposeLog & { exitCode: number };
+				up: ComposeLog & { exitCode: number };
+			};
+		}>(url(server.url, `stacks/${stackName}/update`), authHeader(server))
+		.then((res) => ({
+			success: res.status === 200,
+			message: res.data.message,
+			log: res.data.log.up,
+		}))
+		.catch((err) => {
+			const data = err.response.data;
+			if (err.response.status === 500)
+				return {
+					success: false,
+					message: data.message,
+					log: data.log.pull.exitCode === 0 ? data.log.up : data.log.pull,
+				};
+
+			return {
+				success: false,
+				message: "Something went wrong...",
+				log: { out: "", err: "" },
+			};
+		});
+}
+
+// Create
+// ---
 
 export async function createStack(
 	server: ServerLogin,

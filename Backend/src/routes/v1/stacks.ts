@@ -9,6 +9,29 @@ import { createInsertSchema, createSelectSchema } from "drizzle-typebox";
 import { Elysia, t } from "elysia";
 import containers from "./subroutes/containers";
 
+const containerType = t.Array(
+	t.Object({
+		name: t.String(),
+		image: t.String(),
+		command: t.String(),
+		state: t.String(),
+		ports: t.Array(
+			t.Object({
+				mapped: t.Optional(
+					t.Object({
+						address: t.String(),
+						port: t.Number(),
+					}),
+				),
+				exposed: t.Object({
+					port: t.Number(),
+					protocol: t.String(),
+				}),
+			}),
+		),
+	}),
+);
+
 const _createStack = createInsertSchema(Tables.stacks);
 const _selectStack = createSelectSchema(Tables.stacks);
 
@@ -225,7 +248,7 @@ const stacks = new Elysia({
 			}
 
 			set.status = 200;
-			if (!stacks) return [];
+			if (!stacks || stacks.length === 0) return [];
 
 			return await Promise.all(
 				stacks.map(async (stack) => ({
@@ -275,7 +298,7 @@ const stacks = new Elysia({
 					.from(Tables.stacks)
 					.where(eq(Tables.stacks.name, params.name)),
 			);
-			if (error || !stacks) {
+			if (error || !stacks || stacks.length === 0) {
 				set.status = 400;
 				return {
 					message: "Failed to fetch stacks",
@@ -311,7 +334,7 @@ const stacks = new Elysia({
 			}),
 			response: {
 				200: t.Intersect([
-					t.Omit(_selectStack, ["type"]),
+					_selectStack,
 					t.Object({
 						composeFile: t.Optional(t.String()),
 						envFile: t.Optional(t.String()),
@@ -321,28 +344,7 @@ const stacks = new Elysia({
 							t.Literal("INACTIVE"),
 							t.Literal("DOWN"),
 						]),
-						containers: t.Array(
-							t.Object({
-								name: t.String(),
-								image: t.String(),
-								command: t.String(),
-								state: t.String(),
-								ports: t.Array(
-									t.Object({
-										mapped: t.Optional(
-											t.Object({
-												address: t.String(),
-												port: t.Number(),
-											}),
-										),
-										exposed: t.Object({
-											port: t.Number(),
-											protocol: t.String(),
-										}),
-									}),
-								),
-							}),
-						),
+						containers: containerType,
 					}),
 				]),
 				400: t.Object({
@@ -354,6 +356,55 @@ const stacks = new Elysia({
 				description: "Get all information about a stack",
 			},
 		},
+	)
+	.get(
+		"/:name/status",
+		async ({ params, set }) => {
+			const [stacks, error] = await safeAwait(
+				db
+					.select()
+					.from(Tables.stacks)
+					.where(eq(Tables.stacks.name, params.name)),
+			);
+			if (error || !stacks) {
+				set.status = 400;
+				return {
+					message: "Failed to fetch stacks",
+					error: error?.message ?? "Unknown error",
+				};
+			}
+			const stack = stacks[0];
+
+			const status = await compose.getStatus(stack);
+
+			set.status = 200;
+			return {
+				status: status.status,
+				containers: status.containers
+			};
+		}, 
+		{
+			params: t.Object({
+				name: t.String(),
+			}),
+			response: {
+				200: t.Object({
+					status: t.Union([
+						t.Literal("ACTIVE"),
+						t.Literal("INACTIVE"),
+						t.Literal("DOWN"),
+					]),
+					containers: containerType,
+				}),
+				400: t.Object({
+					message: t.String(),
+					error: t.String(),
+				}),
+			},
+			details: {
+				description: "Get the status of a stack",
+			},
+		}
 	)
 	.patch(
 		"/:name",
@@ -476,7 +527,7 @@ const stacks = new Elysia({
 					.where(eq(Tables.stacks.name, params.name)),
 			);
 			if (error || !stack || stack.length === 0) {
-				set.status = 400;
+				set.status = 500;
 				return {
 					message: "Failed to fetch stack",
 					error: error?.message,
@@ -484,7 +535,7 @@ const stacks = new Elysia({
 			}
 
 			if (stack[0].type !== "git") {
-				set.status = 400;
+				set.status = 500;
 				return {
 					message: "Check only works on git type stacks",
 				};
@@ -495,7 +546,7 @@ const stacks = new Elysia({
 			);
 			if (checkError || !checkRes) {
 				if (checkError) console.error(checkError);
-				set.status = 400;
+				set.status = 500;
 				return {
 					message: "Failed to run check",
 					error: checkError?.message,
@@ -532,7 +583,7 @@ const stacks = new Elysia({
 					from: t.Optional(t.String()),
 					to: t.Optional(t.String()),
 				}),
-				400: t.Object({
+				500: t.Object({
 					message: t.String(),
 					error: t.Optional(t.String()),
 				}),
@@ -542,6 +593,7 @@ const stacks = new Elysia({
 			},
 		},
 	)
+	// Control routes
 	.get(
 		"/:name/start",
 		async ({ params, set }) => {
@@ -552,7 +604,7 @@ const stacks = new Elysia({
 					.where(eq(Tables.stacks.name, params.name)),
 			);
 			if (error || !stack || stack.length === 0) {
-				set.status = 400;
+				set.status = 500;
 				return {
 					message: "Failed to fetch the stack",
 					error: error?.message ?? "Unknown error",
@@ -561,16 +613,19 @@ const stacks = new Elysia({
 
 			const [upRes, upError] = await safeAwait(compose.up(stack[0]));
 			if (upError || !upRes) {
-				set.status = 400;
+				set.status = 500;
 				return {
 					message: "Failed to start docker containers",
 					error: upError?.message ?? "Unknown error",
 				};
 			}
 
-			set.status = 200;
+			set.status = upRes.exitCode === 0 ? 200 : 500;
 			return {
-				message: "Stack started successfully",
+				message:
+					upRes.exitCode === 0
+						? "Stack started successfully"
+						: "Failed to start stack, check log.err",
 				log: {
 					out: upRes.out,
 					err: upRes.err,
@@ -585,13 +640,14 @@ const stacks = new Elysia({
 				200: t.Object({
 					message: t.String(),
 					log: t.Object({
-						out: t.Optional(t.String()),
-						err: t.Optional(t.String()),
+						exitCode: t.Number(),
+						out: t.String(),
+						err: t.String(),
 					}),
 				}),
-				400: t.Object({
+				500: t.Object({
 					message: t.String(),
-					error: t.String(),
+					error: t.Optional(t.String()),
 				}),
 			},
 			details: {
@@ -609,7 +665,7 @@ const stacks = new Elysia({
 					.where(eq(Tables.stacks.name, params.name)),
 			);
 			if (error || !stack || stack.length === 0) {
-				set.status = 400;
+				set.status = 500;
 				return {
 					message: "Failed to fetch the stack",
 					error: error?.message ?? "Unknown error",
@@ -618,20 +674,20 @@ const stacks = new Elysia({
 
 			const [downRes, downError] = await safeAwait(compose.down(stack[0]));
 			if (downError || !downRes) {
-				set.status = 400;
+				set.status = 500;
 				return {
 					message: "Failed to stop docker containers",
 					error: downError?.message ?? "Unknown error",
 				};
 			}
 
-			set.status = 200;
+			set.status = downRes.exitCode === 0 ? 200 : 500;
 			return {
-				message: "Stack stopped successfully",
-				log: {
-					out: downRes.out,
-					err: downRes.err,
-				},
+				message:
+					downRes.exitCode === 0
+						? "Stack stopped successfully"
+						: "Failed to stop stack, check log.err",
+				log: downRes,
 			};
 		},
 		{
@@ -642,13 +698,14 @@ const stacks = new Elysia({
 				200: t.Object({
 					message: t.String(),
 					log: t.Object({
-						out: t.Optional(t.String()),
-						err: t.Optional(t.String()),
+						exitCode: t.Number(),
+						out: t.String(),
+						err: t.String(),
 					}),
 				}),
-				400: t.Object({
+				500: t.Object({
 					message: t.String(),
-					error: t.String(),
+					error: t.Optional(t.String()),
 				}),
 			},
 			details: {
@@ -666,7 +723,7 @@ const stacks = new Elysia({
 					.where(eq(Tables.stacks.name, params.name)),
 			);
 			if (error || !stack || stack.length === 0) {
-				set.status = 400;
+				set.status = 500;
 				return {
 					message: "Failed to fetch the stack",
 					error: error?.message ?? "Unknown error",
@@ -677,20 +734,20 @@ const stacks = new Elysia({
 				compose.restart(stack[0]),
 			);
 			if (downError || !restartRes) {
-				set.status = 400;
+				set.status = 500;
 				return {
 					message: "Failed to stop docker containers",
 					error: downError?.message ?? "Unknown error",
 				};
 			}
 
-			set.status = 200;
+			set.status = restartRes.exitCode === 0 ? 200 : 500;
 			return {
-				message: "Stack restarted successfully",
-				log: {
-					out: restartRes.out,
-					err: restartRes.err,
-				},
+				message:
+					restartRes.exitCode === 0
+						? "Stack restarted successfully"
+						: "Failed to restart stack, check log.err",
+				log: restartRes,
 			};
 		},
 		{
@@ -701,13 +758,14 @@ const stacks = new Elysia({
 				200: t.Object({
 					message: t.String(),
 					log: t.Object({
-						out: t.Optional(t.String()),
-						err: t.Optional(t.String()),
+						exitCode: t.Number(),
+						out: t.String(),
+						err: t.String(),
 					}),
 				}),
-				400: t.Object({
+				500: t.Object({
 					message: t.String(),
-					error: t.String(),
+					error: t.Optional(t.String()),
 				}),
 			},
 			details: {
@@ -725,7 +783,7 @@ const stacks = new Elysia({
 					.where(eq(Tables.stacks.name, params.name)),
 			);
 			if (error || !stack || stack.length === 0) {
-				set.status = 400;
+				set.status = 500;
 				return {
 					message: error ? "Failed to fetch the stack" : "Stack not found",
 					error: error?.message,
@@ -739,7 +797,7 @@ const stacks = new Elysia({
 					"Failed to update containers",
 					`Error: ${error?.message ?? "Something went wrong..."}`,
 				);
-				set.status = 400;
+				set.status = 500;
 				return {
 					message: message,
 					error: error?.message,
@@ -754,25 +812,31 @@ const stacks = new Elysia({
 			if (upError || !upRes)
 				return failed("Failed to start containers", upError);
 
-			sendNotification(
-				stack[0],
-				"stack:containers-updated",
-				"Stack updated",
-				"Containers updated",
-			);
+			const success = pullRes.exitCode === 0 && upRes.exitCode === 0;
 
-			set.status = 200;
+			if (success)
+				sendNotification(
+					stack[0],
+					"stack:containers-updated",
+					"Stack updated",
+					"Containers updated",
+				);
+			else
+				sendNotification(
+					stack[0],
+					"stack:containers-update-failed",
+					"Failed to update containers",
+					`Error: up status: ${upRes.exitCode}, pull status: ${pullRes.exitCode}`,
+				);
+
+			set.status = success ? 200 : 500;
 			return {
-				message: "Stack updated successfully",
+				message: success
+					? "Stack updated successfully"
+					: "Failed to update stack",
 				log: {
-					pull: {
-						out: pullRes.out,
-						err: pullRes.err,
-					},
-					up: {
-						out: upRes.out,
-						err: upRes.err,
-					},
+					pull: pullRes,
+					up: upRes,
 				},
 			};
 		},
@@ -785,16 +849,18 @@ const stacks = new Elysia({
 					message: t.String(),
 					log: t.Object({
 						pull: t.Object({
-							out: t.Optional(t.String()),
-							err: t.Optional(t.String()),
+							exitCode: t.Number(),
+							out: t.String(),
+							err: t.String(),
 						}),
 						up: t.Object({
-							out: t.Optional(t.String()),
-							err: t.Optional(t.String()),
+							exitCode: t.Number(),
+							out: t.String(),
+							err: t.String(),
 						}),
 					}),
 				}),
-				400: t.Object({
+				500: t.Object({
 					message: t.String(),
 					error: t.Optional(t.String()),
 				}),

@@ -125,6 +125,7 @@ export default function NewFileStack() {
 					</div>
 
 					<hr className="!mt-5" />
+					{/* TODO: Loader */}
 					<Button variant="active" onClick={handleCreate}>
 						Create
 					</Button>

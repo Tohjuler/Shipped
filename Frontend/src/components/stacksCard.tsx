@@ -86,7 +86,7 @@ function Stack({ name, url, branch, commit, status }: StackInfo) {
 				<hr />
 				<p className="text-gray-400 text-sm">{url ?? ""}</p>
 				<p className="text-gray-400 text-sm">
-					{branch && commit && `${branch} - ${commit}`}
+					{branch && commit && `${branch} - ${commit.substring(0, 7)}`}
 				</p>
 			</div>
 		</Card>

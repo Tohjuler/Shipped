@@ -1,35 +1,37 @@
 import { cn } from "@/lib/utils";
 
+export type Status = "ACTIVE" | "INACTIVE" | "DOWNED" | "NONE";
+
 export default function StatusIndicator({
 	status,
 	className,
 	...props
 }: {
-	status: "active" | "inactive" | "downed" | "none";
+	status: Status;
 } & React.HTMLAttributes<HTMLDivElement>) {
 	switch (status) {
-		case "active":
+		case "ACTIVE":
 			return (
 				<div
 					className={cn("bg-green-500 w-[5%] mr-2 rounded", className)}
 					{...props}
 				/>
 			);
-		case "inactive":
+		case "INACTIVE":
 			return (
 				<div
 					className={cn("bg-red-500 w-[5%] mr-2 rounded", className)}
 					{...props}
 				/>
 			);
-		case "downed":
+		case "DOWNED":
 			return (
 				<div
 					className={cn("bg-gray-500 w-[5%] mr-2 rounded", className)}
 					{...props}
 				/>
 			);
-		case "none":
+		case "NONE":
 			return (
 				<div className={cn("w-[5%] mr-2 rounded", className)} {...props} />
 			);

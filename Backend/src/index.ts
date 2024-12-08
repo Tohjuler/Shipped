@@ -64,7 +64,7 @@ const app = new Elysia({
 			await new Promise((resolve) => setTimeout(resolve, 1000));
 			if (starting) return notStarted();
 		}
-		if (path.startsWith("/swagger")) return;
+		if (path.startsWith("/swagger") || path.startsWith("/robots.txt")) return;
 
 		if (!bearer) {
 			set.status = 400;
@@ -87,10 +87,10 @@ const app = new Elysia({
 		}
 	})
 	.get("/", () => "API is running!")
+	.get("/robots.txt", () => "User-agent: *\nDisallow: /")
 	.group("/v1", (app) =>
 		app
 			.use(stacks)
-			// .use(updates)
 			.use(mainRoute)
 			.use(keysRoute),
 	)

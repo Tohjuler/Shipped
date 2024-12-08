@@ -78,6 +78,7 @@ export default function NewGitStack() {
 				<CardContent className="p-2 space-y-2 w-full">
 					<GitStackSettings ref={inputsRef} />
 					<hr className="!mt-5" />
+					{/* TODO: Loader */}
 					<Button variant="active" onClick={handleCreate}>
 						Create
 					</Button>
