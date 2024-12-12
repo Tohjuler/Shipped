@@ -1,10 +1,9 @@
 import type { stack } from "@/db/schema";
 import * as compose from "docker-compose";
-import mapPorts from "docker-compose/dist/map-ports";
 import logger from "./logger";
 import { safeAwait } from "./utils";
 
-const baseDir = process.env.STACKS_DIR ?? "/stacks";
+const baseDir: string = process.env.STACKS_DIR ?? "/stacks";
 
 function handleOptions(stack: stack): compose.IDockerComposeOptions {
 	return stack.composePath

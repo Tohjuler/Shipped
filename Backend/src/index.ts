@@ -21,11 +21,7 @@ import {
 let starting = true;
 const lastCheck: { [key: string]: number } = {};
 
-const app = new Elysia({
-	serve: {
-		port: process.env.PORT ?? 5055,
-	},
-})
+const app = new Elysia()
 	.onError(({ error, code }) => {
 		if (code === "NOT_FOUND") return;
 
@@ -88,12 +84,7 @@ const app = new Elysia({
 	})
 	.get("/", () => "API is running!")
 	.get("/robots.txt", () => "User-agent: *\nDisallow: /")
-	.group("/v1", (app) =>
-		app
-			.use(stacks)
-			.use(mainRoute)
-			.use(keysRoute),
-	)
+	.group("/v1", (app) => app.use(stacks).use(mainRoute).use(keysRoute))
 	.use(
 		cron({
 			name: "update-checker",
@@ -149,7 +140,7 @@ async function main() {
 
 	starting = false;
 
-	console.log(`API is running at 0.0.0.0:${process.env.PORT ?? 5055}`);
+	console.log(`API is running at 0.0.0.0:${app.server?.port}`);
 }
 main();
 

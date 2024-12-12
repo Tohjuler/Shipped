@@ -149,6 +149,7 @@ export async function defaultControlCall(
 			log: res.data.log,
 		}))
 		.catch((err) => {
+			console.error(err);
 			if (err.response.status === 500)
 				return { success: false, ...err.response.data };
 
@@ -178,6 +179,7 @@ export async function updateStack(
 			log: res.data.log.up,
 		}))
 		.catch((err) => {
+			console.error(err);
 			const data = err.response.data;
 			if (err.response.status === 500)
 				return {

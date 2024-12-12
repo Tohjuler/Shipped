@@ -6,9 +6,9 @@ import { eq } from "drizzle-orm";
 import Elysia, { t } from "elysia";
 
 const containers = new Elysia()
-	.derive(({ request }) => {
+	.derive(({ path }) => {
 		return {
-			stackName: request.url.split("/")[3], // /v1/stacks/:stack/containers
+			stackName: path.split("/")[3], // /v1/stacks/:stack/containers
 		};
 	})
 	.get(
@@ -18,9 +18,10 @@ const containers = new Elysia()
 				db
 					.select()
 					.from(Tables.stacks)
-					.where(eq(Tables.stacks.name, stackName)),
+					.where(eq(Tables.stacks.name, stackName))
+					.limit(1),
 			);
-			if (error || !stack) {
+			if (error || !stack || stack.length === 0) {
 				set.status = 400;
 				return {
 					message: "Failed to fetch the stack",

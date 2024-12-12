@@ -626,10 +626,7 @@ const stacks = new Elysia({
 					upRes.exitCode === 0
 						? "Stack started successfully"
 						: "Failed to start stack, check log.err",
-				log: {
-					out: upRes.out,
-					err: upRes.err,
-				},
+				log: upRes,
 			};
 		},
 		{

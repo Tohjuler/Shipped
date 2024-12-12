@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "scripts": {
     "start": "bun --bun run src/index.ts",
-    "dev": "bun run --watch src/index.ts",
+    "dev": "bun run --port $(((RANDOM % $((11000 - 10000))) + 10000)) --watch src/index.ts",
     "lint": "bunx @biomejs/biome lint ./src",
     "format": "bunx @biomejs/biome check --write ./src",
     "test": "bun test ./test/index.test.ts ./test/keys.test.ts",
