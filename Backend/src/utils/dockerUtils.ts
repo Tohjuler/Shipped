@@ -6,9 +6,14 @@ import { safeAwait } from "./utils";
 const baseDir: string = process.env.STACKS_DIR ?? "/stacks";
 
 function handleOptions(stack: stack): compose.IDockerComposeOptions {
-	return stack.composePath
-		? { composeOptions: [["-f", stack.composePath]] }
-		: {};
+	return {
+		...(stack.composePath
+			? { composeOptions: [["-f", stack.composePath]] }
+			: {}),
+		env: {
+			COMPOSE_STATUS_STDOUT: "1",
+		},
+	};
 }
 
 function pull(stack: stack): Promise<compose.IDockerComposeResult> {
@@ -18,7 +23,6 @@ function pull(stack: stack): Promise<compose.IDockerComposeResult> {
 	return compose.pullAll({
 		...handleOptions(stack),
 		cwd: `${baseDir}/${stack.name}`,
-		log: true,
 	});
 }
 
@@ -29,7 +33,6 @@ function up(stack: stack): Promise<compose.IDockerComposeResult> {
 	return compose.upAll({
 		...handleOptions(stack),
 		cwd: `${baseDir}/${stack.name}`,
-		log: true,
 	});
 }
 
@@ -48,7 +51,6 @@ function down(
 	return compose.down({
 		...handleOptions(stack),
 		cwd: `${baseDir}/${stack.name}`,
-		log: true,
 		commandOptions: flags,
 	});
 }
@@ -60,7 +62,6 @@ function restart(stack: stack): Promise<compose.IDockerComposeResult> {
 	return compose.restartAll({
 		...handleOptions(stack),
 		cwd: `${baseDir}/${stack.name}`,
-		log: true,
 	});
 }
 
@@ -112,9 +113,9 @@ async function getStatus(
 				image: json.Image.trim(),
 				command: json.Command.trim(),
 				state: json.State.trim(),
-				ports: result.data.services.find(
-					(service) => service.name === json.Name,
-				)?.ports ?? [],
+				ports:
+					result.data.services.find((service) => service.name === json.Name)
+						?.ports ?? [],
 			};
 		});
 
