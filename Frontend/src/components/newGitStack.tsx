@@ -7,8 +7,10 @@ import { useRef } from "react";
 import GitStackSettings, { type GitStackSettingsRef } from "./gitStackSettings";
 import { Button } from "./ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+import { useRouter } from "next/navigation";
 
 export default function NewGitStack() {
+	const router = useRouter();
 	const serverManager = useServerManager();
 	const { toast } = useToast();
 	const inputsRef = useRef<GitStackSettingsRef>(null);
@@ -57,7 +59,7 @@ export default function NewGitStack() {
 					description: "Stack created successfully.",
 					variant: "success",
 				});
-				window.location.href = `/stack/${res.name}`;
+				router.push(`/stack/${res.name}`);
 			})
 			.catch((err) => {
 				toast({

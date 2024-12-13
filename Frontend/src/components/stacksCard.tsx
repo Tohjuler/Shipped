@@ -1,4 +1,5 @@
 "use client";
+
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -12,8 +13,11 @@ import { useEffect, useState } from "react";
 import StatusIndicator from "./statusIndicator";
 import { Button } from "./ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+import { useRouter } from "next/navigation";
+import type { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
 
 export default function StacksCard() {
+	const router = useRouter();
 	const serverManager = useServerManager();
 	const [fetched, setFetched] = useState(false);
 	const [stacks, setStacks] = useState<StackInfo[] | undefined>(undefined);
@@ -65,19 +69,26 @@ export default function StacksCard() {
 					<p className="text-center text-gray-400">No stacks found</p>
 				)}
 				{stacks?.map((stack) => (
-					<Stack key={stack.name} {...stack} />
+					<Stack key={stack.name} {...stack} router={router} />
 				))}
 			</CardContent>
 		</Card>
 	);
 }
 
-function Stack({ name, url, branch, commit, status }: StackInfo) {
+function Stack({
+	name,
+	url,
+	branch,
+	commit,
+	status,
+	router,
+}: StackInfo & { router: AppRouterInstance }) {
 	return (
 		<Card
 			className="flex p-2 w-full cursor-pointer hover:scale-[1.02] duration-300"
 			onClick={() => {
-				window.location.href = `/stack/${name}`;
+				router.push(`/stack/${name}`);
 			}}
 		>
 			<StatusIndicator status={status} />

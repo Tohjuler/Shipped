@@ -18,8 +18,10 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "./ui/select";
+import { useRouter } from "next/navigation";
 
 export default function NewFileStack() {
+	const router = useRouter();
 	const serverManager = useServerManager();
 	const { toast } = useToast();
 	const [compose, setCompose] = useState(
@@ -76,7 +78,7 @@ export default function NewFileStack() {
 					description: "Stack created successfully.",
 					variant: "success",
 				});
-				window.location.href = `/stack/${res.name}`;
+				router.push(`/stack/${res.name}`);
 			})
 			.catch((err) => {
 				toast({
