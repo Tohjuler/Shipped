@@ -8,6 +8,7 @@ import GitStackSettings, { type GitStackSettingsRef } from "./gitStackSettings";
 import { Button } from "./ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { useRouter } from "next/navigation";
+import { revalidateTag } from "next/cache";
 
 export default function NewGitStack() {
 	const router = useRouter();
@@ -59,6 +60,7 @@ export default function NewGitStack() {
 					description: "Stack created successfully.",
 					variant: "success",
 				});
+				revalidateTag("stacks");
 				router.push(`/stack/${res.name}`);
 			})
 			.catch((err) => {

@@ -29,7 +29,7 @@ export default function StackSelHome({ stackName }: { stackName: string }) {
 		undefined,
 	);
 
-	// TODO: Implement actions
+	const [editing, setEditing] = useState(false);
 
 	// Load stack
 	useEffect(() => {
@@ -83,7 +83,7 @@ export default function StackSelHome({ stackName }: { stackName: string }) {
 			restart: "Restarting stack...",
 			update: "Updating stack...",
 			delete: "Deleting stack...",
-		} as const
+		} as const;
 
 		toast({
 			title: messages[action],
@@ -174,7 +174,9 @@ export default function StackSelHome({ stackName }: { stackName: string }) {
 				</div>
 				{/* Loader for actions */}
 				{currentAction && <Loader2 className="animate-spin my-auto ml-auto" />}
-				<div className={`min-w-[157px] w-[35%] my-auto ${currentAction ? "ml-2" : "ml-auto"}`}>
+				<div
+					className={`min-w-[157px] w-[38%] my-auto ${currentAction ? "ml-2" : "ml-auto"}`}
+				>
 					<Button
 						variant="secondary"
 						className="min-w-[70px] w-[23%] ml-2"
@@ -229,19 +231,61 @@ export default function StackSelHome({ stackName }: { stackName: string }) {
 					</CardContent>
 				</Card>
 
-				<Card className="md:w-[58%] p-2 md:ml-auto h-fit mt-2 lg:mt-0">
+				<Card className="md:w-[58%] p-2 md:ml-auto h-fit my-2 lg:mt-0">
 					<CardHeader className="flex-row space-y-0 p-3">
 						<CardTitle className="my-auto">Settings</CardTitle>
-						<Button variant="secondary" className="w-fit ml-auto">
-							Edit
-						</Button>
+						{editing ? (
+							<>
+								<Button
+									variant="active"
+									className="w-fit ml-auto"
+									onClick={() => {
+										// TODO: Save changes
+
+										setEditing(!editing);
+										toast({
+											description: "Saved changes",
+										});
+									}}
+								>
+									Save
+								</Button>
+								<Button
+									variant="secondary"
+									className="w-fit ml-2"
+									onClick={() => {
+										setEditing(!editing);
+										toast({
+											description: "Stopped editing",
+										});
+									}}
+								>
+									Cancel
+								</Button>
+							</>
+						) : (
+							<Button
+								variant="secondary"
+								className="w-fit ml-auto"
+								onClick={() => {
+									setEditing(!editing);
+									toast({
+										description: editing
+											? "Stopped editing"
+											: "Started editing",
+									});
+								}}
+							>
+								Edit
+							</Button>
+						)}
 					</CardHeader>
 					<hr className="mb-2 mx-2" />
 					<CardContent className="p-2 space-y-2 w-full">
 						{stack.type === "git" ? (
-							<GitStackSettings stack={stack} disabled={true} />
+							<GitStackSettings stack={stack} disabled={!editing} />
 						) : (
-							<StackSettings stack={stack} disabled={true} />
+							<StackSettings stack={stack} disabled={!editing} />
 						)}
 					</CardContent>
 				</Card>

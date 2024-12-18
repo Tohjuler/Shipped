@@ -19,6 +19,7 @@ import {
 	SelectValue,
 } from "./ui/select";
 import { useRouter } from "next/navigation";
+import { revalidateTag } from "next/cache";
 
 export default function NewFileStack() {
 	const router = useRouter();
@@ -56,6 +57,8 @@ export default function NewFileStack() {
 			return;
 		}
 
+		// TODO: Validate yaml
+
 		createStack(serverManager?.selectedServer, {
 			name: name.current.value,
 			type: "file",
@@ -78,6 +81,7 @@ export default function NewFileStack() {
 					description: "Stack created successfully.",
 					variant: "success",
 				});
+				revalidateTag("stacks");
 				router.push(`/stack/${res.name}`);
 			})
 			.catch((err) => {

@@ -75,11 +75,16 @@ function authHeader(server: ServerLogin) {
 
 export async function getStacks(server?: ServerLogin): Promise<StackInfo[]> {
 	if (!server || !server.url) return [];
-	return await axios
-		.get<StackInfo[]>(url(server.url, "stacks"), authHeader(server))
-		.then((response) => response.data)
+	return await fetch(url(server.url, "stacks"), {
+		...authHeader(server),
+		cache: "force-cache",
+		next: {
+			tags: ["stacks"],
+		},
+	})
+		.then((res) => res.json())
 		.catch(() => {
-			// TODO: Handle error
+			//TODO: Handle error
 			return [];
 		});
 }
@@ -90,13 +95,15 @@ export async function getStack(
 ): Promise<{ status: number; stack: ExtededStack | undefined } | undefined> {
 	if (!server || !server.url) return undefined;
 
-	return await axios
-		.get<ExtededStack>(
-			url(server.url, `stacks/${stackName}`),
-			authHeader(server),
-		)
-		.then((response) => ({ status: response.status, stack: response.data }))
-		.catch((err) => {
+	return await fetch(url(server.url, `stacks/${stackName}`), {
+		...authHeader(server),
+		cache: "default",
+		next: {
+			tags: ["stacks"],
+		},
+	})
+		.then(async (res) => ({ status: res.status, stack: await res.json() }))
+		.catch(async (err) => {
 			// TODO: Handle error
 			return { status: err.response.status, stack: undefined };
 		});
@@ -114,9 +121,32 @@ export async function getStatus(
 > {
 	if (!server || !server.url) return undefined;
 
+	return await fetch(url(server.url, `stacks/${stackName}/status`), {
+		...authHeader(server),
+		cache: "default",
+		next: {
+			tags: ["stacks"],
+		},
+	})
+		.then(async (res) => res.json())
+		.catch(async () => {
+			// TODO: Handle error
+			return undefined;
+		});
+}
+
+export async function editStack(
+	server: ServerLogin | undefined,
+	stack: ExtededStack,
+) {
+	if (!server || !server.url) return undefined;
 	return await axios
-		.get(url(server.url, `stacks/${stackName}/containers`), authHeader(server))
-		.then((response) => response.data);
+		.patch(url(server.url, `stacks/${stack.name}`), stack, authHeader(server))
+		.then(() => undefined)
+		.catch((err) => {
+			// TODO: Handle error
+			return err.message;
+		});
 }
 
 // Controls
