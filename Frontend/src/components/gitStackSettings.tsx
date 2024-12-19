@@ -19,7 +19,7 @@ import {
 } from "./ui/select";
 import { Switch } from "./ui/switch";
 
-export interface GitStackSettingsRef {
+export interface StackSettingsRef {
 	getStack: () => Stack;
 	isValid: () => string | undefined;
 }
@@ -29,7 +29,7 @@ interface GitStackSettingsProps {
 	stack?: Stack;
 }
 
-const GitStackSettings = forwardRef<GitStackSettingsRef, GitStackSettingsProps>(
+const GitStackSettings = forwardRef<StackSettingsRef, GitStackSettingsProps>(
 	({ disabled, stack }, ref) => {
 		const name = useRef<HTMLInputElement>(null);
 		const repo = useRef<HTMLInputElement>(null);

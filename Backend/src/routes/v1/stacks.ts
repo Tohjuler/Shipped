@@ -429,6 +429,8 @@ const stacks = new Elysia({
 				Bun.write(`${baseDir}/${params.name}/docker-compose.yml`, composeFile);
 			if (envFile) Bun.write(`${baseDir}/${params.name}/.env`, envFile);
 
+			// TODO: Handle update, if needed. Restart, name change, git url change, etc.
+
 			set.status = 200;
 			return {
 				message: "Stack updated successfully",

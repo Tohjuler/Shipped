@@ -6,8 +6,8 @@ import {
 	type ServerLogin,
 	useServerManager,
 } from "@/lib/serverManagerProvider";
-import { useEffect, useState } from "react";
-import GitStackSettings from "./gitStackSettings";
+import { useEffect, useRef, useState } from "react";
+import GitStackSettings, { type StackSettingsRef } from "./gitStackSettings";
 import StackSettings from "./stackSettings";
 import StatusIndicator, { type Status } from "./statusIndicator";
 import { Button } from "./ui/button";
@@ -23,6 +23,8 @@ export default function StackSelHome({ stackName }: { stackName: string }) {
 	const serverManager = useServerManager();
 	const [stack, setStack] = useState<Api.ExtededStack | undefined>(undefined);
 	const [notFound, setNotFound] = useState(false);
+
+	const editor = useRef<StackSettingsRef>(null);
 
 	// Used to track what is currently happening, undefined means nothing is happening
 	const [currentAction, setCurrentAction] = useState<Action | undefined>(
@@ -129,6 +131,31 @@ export default function StackSelHome({ stackName }: { stackName: string }) {
 			setCurrentAction(undefined);
 		});
 	};
+
+	const handleSave = () => {
+		if (!serverManager?.selectedServer || !stack) return;
+		if (!editor.current) return;
+
+		const newStack = editor.current.getStack();
+		if (!newStack) return;
+
+		Api.editStack(serverManager.selectedServer, newStack).then((res) => {
+			if (res) {
+				toast({
+					title: "Error",
+					description: res,
+					variant: "destructive",
+				});
+				return;
+			}
+
+			toast({
+				title: "Success",
+				description: "Stack updated successfully",
+				variant: "success",
+			});
+		});	
+	}
 
 	// ---
 
@@ -240,12 +267,8 @@ export default function StackSelHome({ stackName }: { stackName: string }) {
 									variant="active"
 									className="w-fit ml-auto"
 									onClick={() => {
-										// TODO: Save changes
-
+										handleSave();
 										setEditing(!editing);
-										toast({
-											description: "Saved changes",
-										});
 									}}
 								>
 									Save
@@ -283,9 +306,9 @@ export default function StackSelHome({ stackName }: { stackName: string }) {
 					<hr className="mb-2 mx-2" />
 					<CardContent className="p-2 space-y-2 w-full">
 						{stack.type === "git" ? (
-							<GitStackSettings stack={stack} disabled={!editing} />
+							<GitStackSettings ref={editor} stack={stack} disabled={!editing} />
 						) : (
-							<StackSettings stack={stack} disabled={!editing} />
+							<StackSettings ref={editor} stack={stack} disabled={!editing} />
 						)}
 					</CardContent>
 				</Card>

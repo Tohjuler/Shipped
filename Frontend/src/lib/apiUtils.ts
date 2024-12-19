@@ -137,7 +137,7 @@ export async function getStatus(
 
 export async function editStack(
 	server: ServerLogin | undefined,
-	stack: ExtededStack,
+	stack: Stack,
 ) {
 	if (!server || !server.url) return undefined;
 	return await axios

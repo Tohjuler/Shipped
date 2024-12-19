@@ -21,11 +21,7 @@ import {
 import "prismjs/components/prism-yaml";
 import "prismjs/components/prism-properties";
 import type { Stack } from "@/lib/apiUtils";
-
-export interface StackSettingsRef {
-	getStack: () => Stack;
-	isValid: () => string | undefined;
-}
+import type { StackSettingsRef } from "./gitStackSettings";
 
 interface StackSettingsProps {
 	disabled?: boolean;
