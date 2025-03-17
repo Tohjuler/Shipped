@@ -18,7 +18,7 @@
     "@elysiajs/cron": "^1.1.1",
     "@elysiajs/server-timing": "^1.1.0",
     "@elysiajs/swagger": "^1.1.6",
-    "@libsql/client": "^0.14.0",
+    "@libsql/client": "^0.15.0",
     "docker-compose": "^1.1.0",
     "drizzle-orm": "^0.38.0",
     "drizzle-typebox": "^0.2.0",
